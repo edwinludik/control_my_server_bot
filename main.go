@@ -74,7 +74,6 @@ func main() {
 		if update.Message.From.ID != cfg.OwnerID {
 			msg := tgbotapi.NewMessage(update.Message.Chat.ID, "Access Denied.")
 			bot.Send(msg)
-			continue
 		}
 
 		handleCommand(bot, update.Message)
