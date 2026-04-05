@@ -1,6 +1,8 @@
 package main
 
 import (
+	"database/sql"
+	"errors"
 	"fmt"
 	"log"
 	"os"
@@ -11,6 +13,7 @@ import (
 
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
 	"github.com/joho/godotenv"
+	_ "modernc.org/sqlite"
 )
 
 type Config struct {
@@ -18,6 +21,7 @@ type Config struct {
 	OwnerID            int64
 	LogChannelID       int64
 	ControlledServices []string
+	DBPath             string
 }
 
 func loadConfig() (*Config, error) {
@@ -58,12 +62,76 @@ func loadConfig() (*Config, error) {
 		}
 	}
 
+	dbPath := os.Getenv("DATABASE_PATH")
+	if dbPath == "" {
+		dbPath = ".user_ids"
+	}
+
 	return &Config{
 		Token:              token,
 		OwnerID:            ownerID,
 		LogChannelID:       logChannelID,
 		ControlledServices: controlledServices,
+		DBPath:             dbPath,
 	}, nil
+}
+
+type UserStore struct {
+	db *sql.DB
+}
+
+func NewUserStore(dbPath string) (*UserStore, error) {
+	db, err := sql.Open("sqlite", dbPath)
+	if err != nil {
+		return nil, err
+	}
+
+	_, err = db.Exec(`CREATE TABLE IF NOT EXISTS users (
+		id INTEGER PRIMARY KEY,
+		permissions TEXT
+	)`)
+	if err != nil {
+		return nil, err
+	}
+
+	return &UserStore{db: db}, nil
+}
+
+func (s *UserStore) AddUser(id int64, permissions string) error {
+	_, err := s.db.Exec("INSERT OR REPLACE INTO users (id, permissions) VALUES (?, ?)", id, permissions)
+	return err
+}
+
+func (s *UserStore) DeleteUser(id int64) error {
+	_, err := s.db.Exec("DELETE FROM users WHERE id = ?", id)
+	return err
+}
+
+func (s *UserStore) GetPermissions(id int64) (string, error) {
+	var perms string
+	err := s.db.QueryRow("SELECT permissions FROM users WHERE id = ?", id).Scan(&perms)
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return "", nil
+		}
+		return "", err
+	}
+	return perms, nil
+}
+
+func (s *UserStore) HasPermission(id int64, perm string) bool {
+	perms, err := s.GetPermissions(id)
+	if err != nil {
+		return false
+	}
+	if perms == "*" {
+		return true
+	}
+	return slices.Contains(strings.Split(perms, ","), perm)
+}
+
+func (s *UserStore) Close() error {
+	return s.db.Close()
 }
 
 func main() {
@@ -76,6 +144,12 @@ func main() {
 	if err != nil {
 		log.Fatalf("failed to load config: %v", err)
 	}
+
+	userStore, err := NewUserStore(cfg.DBPath)
+	if err != nil {
+		log.Fatalf("failed to initialize user store: %v", err)
+	}
+	defer userStore.Close()
 
 	bot, err := tgbotapi.NewBotAPI(cfg.Token)
 	if err != nil {
@@ -112,14 +186,21 @@ func main() {
 			continue
 		}
 
+		// Check authorization: Owner or exists in userStore
 		if update.Message.From.ID != cfg.OwnerID {
-			msg := tgbotapi.NewMessage(update.Message.Chat.ID, "Access Denied.")
-			bot.Send(msg)
-			logger.Printf("Unauthorized access attempt from User ID: %d", update.Message.From.ID)
-			continue
+			perms, err := userStore.GetPermissions(update.Message.From.ID)
+			if err != nil {
+				logger.Printf("Error checking permissions for %d: %v", update.Message.From.ID, err)
+			}
+			if perms == "" {
+				msg := tgbotapi.NewMessage(update.Message.Chat.ID, "Access Denied.")
+				bot.Send(msg)
+				logger.Printf("Unauthorized access attempt from User ID: %d", update.Message.From.ID)
+				continue
+			}
 		}
 
-		handleCommand(bot, update.Message, logger, cfg)
+		handleCommand(bot, update.Message, logger, cfg, userStore)
 	}
 }
 
@@ -142,19 +223,33 @@ func (l *TelegramLogger) Printf(format string, v ...any) {
 	_, _ = l.bot.Send(tgMsg)
 }
 
-func handleCommand(bot *tgbotapi.BotAPI, msg *tgbotapi.Message, logger *TelegramLogger, cfg *Config) {
+func handleCommand(bot *tgbotapi.BotAPI, msg *tgbotapi.Message, logger *TelegramLogger, cfg *Config, userStore *UserStore) {
 	chatID := msg.Chat.ID
+	userID := msg.From.ID
 	command := msg.Command()
 	args := msg.CommandArguments()
 
-	logger.Printf("Command received: /%s from chat %d", command, chatID)
+	isOwner := userID == cfg.OwnerID
+	hasPerm := func(p string) bool {
+		return isOwner || userStore.HasPermission(userID, p)
+	}
+
+	logger.Printf("Command received: /%s from chat %d (User %d)", command, chatID, userID)
 
 	switch command {
 	case "start":
-		reply := tgbotapi.NewMessage(chatID, "Welcome! Use /restart_server, /restart_service <name>, /list_services, or /status to control your server.")
+		help := "Welcome! Use /restart_server, /restart_service <name>, /list_services, or /status to control your server."
+		if isOwner {
+			help += "\n\nOwner commands:\n/add_user <id> <perms>\n/delete_user <id>\nPermissions can be '*' or comma-separated list of commands."
+		}
+		reply := tgbotapi.NewMessage(chatID, help)
 		bot.Send(reply)
 
 	case "restart_server":
+		if !hasPerm("restart_server") {
+			bot.Send(tgbotapi.NewMessage(chatID, "Permission denied: restart_server"))
+			return
+		}
 		logger.Printf("Restarting server requested by chat %d", chatID)
 		bot.Send(tgbotapi.NewMessage(chatID, "Restarting server..."))
 		cmd := exec.Command("sudo", "reboot")
@@ -165,6 +260,10 @@ func handleCommand(bot *tgbotapi.BotAPI, msg *tgbotapi.Message, logger *Telegram
 		}
 
 	case "restart_service":
+		if !hasPerm("restart_service") {
+			bot.Send(tgbotapi.NewMessage(chatID, "Permission denied: restart_service"))
+			return
+		}
 		serviceName := strings.TrimSpace(args)
 		if serviceName == "" {
 			bot.Send(tgbotapi.NewMessage(chatID, "Please provide a service name. Usage: /restart_service <name>"))
@@ -192,6 +291,10 @@ func handleCommand(bot *tgbotapi.BotAPI, msg *tgbotapi.Message, logger *Telegram
 		}
 
 	case "list_services":
+		if !hasPerm("list_services") {
+			bot.Send(tgbotapi.NewMessage(chatID, "Permission denied: list_services"))
+			return
+		}
 		services, err := getAvailableServices(cfg)
 		if err != nil {
 			bot.Send(tgbotapi.NewMessage(chatID, "Failed to list services: "+err.Error()))
@@ -205,11 +308,55 @@ func handleCommand(bot *tgbotapi.BotAPI, msg *tgbotapi.Message, logger *Telegram
 		}
 
 	case "status":
+		if !hasPerm("status") {
+			bot.Send(tgbotapi.NewMessage(chatID, "Permission denied: status"))
+			return
+		}
 		uptime, err := exec.Command("uptime", "-p").Output()
 		if err != nil {
 			uptime, _ = exec.Command("uptime").Output()
 		}
 		bot.Send(tgbotapi.NewMessage(chatID, fmt.Sprintf("Server Status:\nUptime: %s", strings.TrimSpace(string(uptime)))))
+
+	case "add_user":
+		if !isOwner {
+			bot.Send(tgbotapi.NewMessage(chatID, "Only the owner can add users."))
+			return
+		}
+		parts := strings.Fields(args)
+		if len(parts) < 2 {
+			bot.Send(tgbotapi.NewMessage(chatID, "Usage: /add_user <id> <permissions>"))
+			return
+		}
+		id, err := strconv.ParseInt(parts[0], 10, 64)
+		if err != nil {
+			bot.Send(tgbotapi.NewMessage(chatID, "Invalid user ID."))
+			return
+		}
+		perms := parts[1]
+		if err := userStore.AddUser(id, perms); err != nil {
+			bot.Send(tgbotapi.NewMessage(chatID, "Failed to add user: "+err.Error()))
+		} else {
+			bot.Send(tgbotapi.NewMessage(chatID, fmt.Sprintf("User %d added with permissions: %s", id, perms)))
+			logger.Printf("User %d added with permissions: %s by owner", id, perms)
+		}
+
+	case "delete_user":
+		if !isOwner {
+			bot.Send(tgbotapi.NewMessage(chatID, "Only the owner can delete users."))
+			return
+		}
+		id, err := strconv.ParseInt(strings.TrimSpace(args), 10, 64)
+		if err != nil {
+			bot.Send(tgbotapi.NewMessage(chatID, "Usage: /delete_user <id>"))
+			return
+		}
+		if err := userStore.DeleteUser(id); err != nil {
+			bot.Send(tgbotapi.NewMessage(chatID, "Failed to delete user: "+err.Error()))
+		} else {
+			bot.Send(tgbotapi.NewMessage(chatID, fmt.Sprintf("User %d deleted.", id)))
+			logger.Printf("User %d deleted by owner", id)
+		}
 
 	default:
 		bot.Send(tgbotapi.NewMessage(chatID, "I don't know that command"))

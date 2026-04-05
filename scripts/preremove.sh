@@ -1,7 +1,7 @@
 #!/bin/sh
 set -e
 
-SERVICE_NAME="control-my-server-bot.service"
+SERVICE_NAME="control_my_server_bot.service"
 
 if command -v systemctl >/dev/null 2>&1; then
     systemctl stop "$SERVICE_NAME" || true

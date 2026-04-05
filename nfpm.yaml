@@ -1,4 +1,4 @@
-name: control-my-server-bot
+name: control_my_server_bot
 arch: amd64
 platform: linux
 version: 1.0.0
@@ -9,16 +9,16 @@ description: |
   A Telegram bot to control your Linux server.
   Allows restarting the server, services, and checking status.
 vendor: JetBrains
-homepage: https://github.com/example/control-my-server-bot
+homepage: https://github.com/example/control_my_server_bot
 license: MIT
 
 contents:
   - src: control_my_server_bot
-    dst: /usr/bin/control-my-server-bot
+    dst: /usr/bin/control_my_server_bot
   - src: control-bot.service
-    dst: /usr/lib/systemd/system/control-my-server-bot.service
+    dst: /usr/lib/systemd/system/control_my_server_bot.service
   - src: .env.example
-    dst: /etc/control-my-server-bot/.env
+    dst: /etc/control_my_server_bot/.env
     type: config
 
 scripts:
@@ -30,7 +30,7 @@ overrides:
   deb:
     contents:
       - src: control-bot.service
-        dst: /lib/systemd/system/control-my-server-bot.service
+        dst: /lib/systemd/system/control_my_server_bot.service
     depends:
       - systemd
     recommends:

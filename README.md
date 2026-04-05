@@ -8,6 +8,9 @@ A Telegram bot to control your Linux server remotely via `systemctl` and `reboot
 - `/list_services`: List available services (all running or from a whitelist).
 - `/restart_service <name>`: Restart a specific service.
 - `/restart_server`: Reboot the server.
+- **Multi-user Support**: Add and manage additional users via SQLite with granular permissions.
+  - `/add_user <id> <perms>`: Grant permissions (e.g., `status,list_services` or `*` for all).
+  - `/delete_user <id>`: Remove a user.
 - Logging to a dedicated Telegram channel.
 - Whitelist for controllable services.
 - **High Availability**: Configured to run with elevated privileges and scheduling priority to remain responsive even when the server is under extreme load.
@@ -67,18 +70,18 @@ For a cleaner installation, you can build and install a package for your specifi
 **Installing the package:**
 1. Copy the generated package file to your server.
 2. Install it:
-   - **Debian/Ubuntu**: `sudo dpkg -i control-my-server-bot_1.0.0_amd64.deb`
-   - **RedHat/CentOS/Fedora**: `sudo rpm -i control-my-server-bot-1.0.0.x86_64.rpm`
-   - **Arch Linux**: `sudo pacman -U control-my-server-bot-1.0.0-1-x86_64.pkg.tar.zst`
+   - **Debian/Ubuntu**: `sudo dpkg -i control_my_server_bot_1.0.0_amd64.deb`
+   - **RedHat/CentOS/Fedora**: `sudo rpm -i control_my_server_bot-1.0.0.x86_64.rpm`
+   - **Arch Linux**: `sudo pacman -U control_my_server_bot-1.0.0-1-x86_64.pkg.tar.zst`
 3. Configure the bot:
-   Edit `/etc/control-my-server-bot/.env` with your credentials.
+   Edit `/etc/control_my_server_bot/.env` with your credentials.
 4. Restart the service:
    ```bash
-   sudo systemctl restart control-my-server-bot.service
+   sudo systemctl restart control_my_server_bot.service
    ```
 
 ## Verify
-- Check service status: `sudo systemctl status control-my-server-bot.service`
+- Check service status: `sudo systemctl status control_my_server_bot.service`
 - Send `/start` to your bot on Telegram.
 
 ## Security and Responsiveness Note

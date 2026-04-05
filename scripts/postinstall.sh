@@ -2,7 +2,7 @@
 set -e
 
 # Standard systemd service name
-SERVICE_NAME="control-my-server-bot.service"
+SERVICE_NAME="control_my_server_bot.service"
 
 if command -v systemctl >/dev/null 2>&1; then
     systemctl daemon-reload
@@ -11,5 +11,5 @@ if command -v systemctl >/dev/null 2>&1; then
 fi
 
 echo "Control My Server Bot installed and configured as a service."
-echo "Please edit /etc/control-my-server-bot/.env with your Telegram credentials."
+echo "Please edit /etc/control_my_server_bot/.env with your Telegram credentials."
 echo "Then restart the service: sudo systemctl restart $SERVICE_NAME"
