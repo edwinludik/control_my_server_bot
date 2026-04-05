@@ -349,18 +349,18 @@ func handleCommand(bot *tgbotapi.BotAPI, msg *tgbotapi.Message, logger *Telegram
 	helpText := "🤖 *Available Commands:*\n" +
 		"• /ping — Return \"Pong!\"\n" +
 		"• /status — Check server status, RAM, CPU, and disk space\n" +
-		"• /get_cpu_usage — Show current CPU usage\n" +
-		"• /get_ram_usage — Show current RAM usage\n" +
-		"• /get_disk_usage — Show free disk space on all drives\n" +
-		"• /get_services — List available services\n" +
-		"• /restart_service <name> — Restart a service\n" +
-		"• /restart_server — Reboot the server"
+		"• /get\\_cpu\\_usage — Show current CPU usage\n" +
+		"• /get\\_ram\\_usage — Show current RAM usage\n" +
+		"• /get\\_disk\\_usage — Show free disk space on all drives\n" +
+		"• /get\\_services — List available services\n" +
+		"• /restart\\_service <name> — Restart a service\n" +
+		"• /restart\\_server — Reboot the server"
 
 	if isOwner {
 		helpText += "\n\n🔑 *Owner Commands:*\n" +
-			"• /add_user <id> — Add an authorized user\n" +
-			"• /delete_user <id> — Remove a user\n" +
-			"• /get_users — List all authorized users"
+			"• /add\\_user <id> — Add an authorized user\n" +
+			"• /delete\\_user <id> — Remove a user\n" +
+			"• /get\\_users — List all authorized users"
 	}
 
 	switch command {
