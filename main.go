@@ -2,7 +2,6 @@ package main
 
 import (
 	"database/sql"
-	"errors"
 	"fmt"
 	"log"
 	"os"
@@ -87,8 +86,7 @@ func NewUserStore(dbPath string) (*UserStore, error) {
 	}
 
 	_, err = db.Exec(`CREATE TABLE IF NOT EXISTS users (
-		id INTEGER PRIMARY KEY,
-		permissions TEXT
+		id INTEGER PRIMARY KEY
 	)`)
 	if err != nil {
 		return nil, err
@@ -97,8 +95,8 @@ func NewUserStore(dbPath string) (*UserStore, error) {
 	return &UserStore{db: db}, nil
 }
 
-func (s *UserStore) AddUser(id int64, permissions string) error {
-	_, err := s.db.Exec("INSERT OR REPLACE INTO users (id, permissions) VALUES (?, ?)", id, permissions)
+func (s *UserStore) AddUser(id int64) error {
+	_, err := s.db.Exec("INSERT OR REPLACE INTO users (id) VALUES (?)", id)
 	return err
 }
 
@@ -107,44 +105,28 @@ func (s *UserStore) DeleteUser(id int64) error {
 	return err
 }
 
-func (s *UserStore) GetPermissions(id int64) (string, error) {
-	var perms string
-	err := s.db.QueryRow("SELECT permissions FROM users WHERE id = ?", id).Scan(&perms)
-	if err != nil {
-		if errors.Is(err, sql.ErrNoRows) {
-			return "", nil
-		}
-		return "", err
-	}
-	return perms, nil
+func (s *UserStore) UserExists(id int64) (bool, error) {
+	var exists bool
+	err := s.db.QueryRow("SELECT EXISTS(SELECT 1 FROM users WHERE id = ?)", id).Scan(&exists)
+	return exists, err
 }
 
-func (s *UserStore) HasPermission(id int64, perm string) bool {
-	perms, err := s.GetPermissions(id)
-	if err != nil {
-		return false
-	}
-	if perms == "*" {
-		return true
-	}
-	return slices.Contains(strings.Split(perms, ","), perm)
-}
-
-func (s *UserStore) ListUsers() ([]string, error) {
-	rows, err := s.db.Query("SELECT id, permissions FROM users")
+func (s *UserStore) ListUsers(ownerID int64) ([]string, error) {
+	rows, err := s.db.Query("SELECT id FROM users")
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
 
 	var result []string
+	result = append(result, fmt.Sprintf("User: %d (Owner, cannot be deleted)", ownerID))
+
 	for rows.Next() {
 		var id int64
-		var perms string
-		if err := rows.Scan(&id, &perms); err != nil {
+		if err := rows.Scan(&id); err != nil {
 			return nil, err
 		}
-		result = append(result, fmt.Sprintf("User: %d, Perms: %s", id, perms))
+		result = append(result, fmt.Sprintf("User: %d", id))
 	}
 	return result, nil
 }
@@ -207,11 +189,11 @@ func main() {
 
 		// Check authorization: Owner or exists in userStore
 		if update.Message.From.ID != cfg.OwnerID {
-			perms, err := userStore.GetPermissions(update.Message.From.ID)
+			authorized, err := userStore.UserExists(update.Message.From.ID)
 			if err != nil {
-				logger.Printf("Error checking permissions for %d: %v", update.Message.From.ID, err)
+				logger.Printf("Error checking authorization for %d: %v", update.Message.From.ID, err)
 			}
-			if perms == "" {
+			if !authorized {
 				msg := tgbotapi.NewMessage(update.Message.Chat.ID, "Access Denied.")
 				bot.Send(msg)
 				logger.Printf("Unauthorized access attempt from User ID: %d", update.Message.From.ID)
@@ -249,8 +231,13 @@ func handleCommand(bot *tgbotapi.BotAPI, msg *tgbotapi.Message, logger *Telegram
 	args := msg.CommandArguments()
 
 	isOwner := userID == cfg.OwnerID
-	hasPerm := func(p string) bool {
-		return isOwner || userStore.HasPermission(userID, p)
+	isAuthorized := isOwner
+	if !isAuthorized {
+		authorized, err := userStore.UserExists(userID)
+		if err != nil {
+			logger.Printf("Error checking authorization for %d: %v", userID, err)
+		}
+		isAuthorized = authorized
 	}
 
 	logger.Printf("Command received: /%s from chat %d (User %d)", command, chatID, userID)
@@ -263,10 +250,9 @@ func handleCommand(bot *tgbotapi.BotAPI, msg *tgbotapi.Message, logger *Telegram
 
 	if isOwner {
 		helpText += "\n\nOwner commands:\n" +
-			"/add_user <id> <perms> - Add/Update user permissions\n" +
+			"/add_user <id> - Add an authorized user\n" +
 			"/delete_user <id> - Remove a user\n" +
-			"/list_users - List all users with permissions\n" +
-			"Permissions can be '*' or comma-separated list of commands."
+			"/list_users - List all authorized users"
 	}
 
 	switch command {
@@ -275,8 +261,8 @@ func handleCommand(bot *tgbotapi.BotAPI, msg *tgbotapi.Message, logger *Telegram
 		bot.Send(reply)
 
 	case "restart_server":
-		if !hasPerm("restart_server") {
-			bot.Send(tgbotapi.NewMessage(chatID, "Permission denied: restart_server"))
+		if !isAuthorized {
+			bot.Send(tgbotapi.NewMessage(chatID, "Permission denied."))
 			return
 		}
 		logger.Printf("Restarting server requested by chat %d", chatID)
@@ -289,8 +275,8 @@ func handleCommand(bot *tgbotapi.BotAPI, msg *tgbotapi.Message, logger *Telegram
 		}
 
 	case "restart_service":
-		if !hasPerm("restart_service") {
-			bot.Send(tgbotapi.NewMessage(chatID, "Permission denied: restart_service"))
+		if !isAuthorized {
+			bot.Send(tgbotapi.NewMessage(chatID, "Permission denied."))
 			return
 		}
 		serviceName := strings.TrimSpace(args)
@@ -320,8 +306,8 @@ func handleCommand(bot *tgbotapi.BotAPI, msg *tgbotapi.Message, logger *Telegram
 		}
 
 	case "list_services":
-		if !hasPerm("list_services") {
-			bot.Send(tgbotapi.NewMessage(chatID, "Permission denied: list_services"))
+		if !isAuthorized {
+			bot.Send(tgbotapi.NewMessage(chatID, "Permission denied."))
 			return
 		}
 		services, err := getAvailableServices(cfg)
@@ -337,8 +323,8 @@ func handleCommand(bot *tgbotapi.BotAPI, msg *tgbotapi.Message, logger *Telegram
 		}
 
 	case "status":
-		if !hasPerm("status") {
-			bot.Send(tgbotapi.NewMessage(chatID, "Permission denied: status"))
+		if !isAuthorized {
+			bot.Send(tgbotapi.NewMessage(chatID, "Permission denied."))
 			return
 		}
 		uptime, err := exec.Command("uptime", "-p").Output()
@@ -353,8 +339,8 @@ func handleCommand(bot *tgbotapi.BotAPI, msg *tgbotapi.Message, logger *Telegram
 			return
 		}
 		parts := strings.Fields(args)
-		if len(parts) < 2 {
-			bot.Send(tgbotapi.NewMessage(chatID, "Usage: /add_user <id> <permissions>"))
+		if len(parts) < 1 {
+			bot.Send(tgbotapi.NewMessage(chatID, "Usage: /add_user <id>"))
 			return
 		}
 		id, err := strconv.ParseInt(parts[0], 10, 64)
@@ -362,12 +348,11 @@ func handleCommand(bot *tgbotapi.BotAPI, msg *tgbotapi.Message, logger *Telegram
 			bot.Send(tgbotapi.NewMessage(chatID, "Invalid user ID."))
 			return
 		}
-		perms := parts[1]
-		if err := userStore.AddUser(id, perms); err != nil {
+		if err := userStore.AddUser(id); err != nil {
 			bot.Send(tgbotapi.NewMessage(chatID, "Failed to add user: "+err.Error()))
 		} else {
-			bot.Send(tgbotapi.NewMessage(chatID, fmt.Sprintf("User %d added with permissions: %s", id, perms)))
-			logger.Printf("User %d added with permissions: %s by owner", id, perms)
+			bot.Send(tgbotapi.NewMessage(chatID, fmt.Sprintf("User %d added with full permissions.", id)))
+			logger.Printf("User %d added with full permissions by owner", id)
 		}
 
 	case "delete_user":
@@ -392,13 +377,13 @@ func handleCommand(bot *tgbotapi.BotAPI, msg *tgbotapi.Message, logger *Telegram
 			bot.Send(tgbotapi.NewMessage(chatID, "Only the owner can list users."))
 			return
 		}
-		users, err := userStore.ListUsers()
+		users, err := userStore.ListUsers(cfg.OwnerID)
 		if err != nil {
 			bot.Send(tgbotapi.NewMessage(chatID, "Failed to list users: "+err.Error()))
 			return
 		}
 		if len(users) == 0 {
-			bot.Send(tgbotapi.NewMessage(chatID, "No additional users found."))
+			bot.Send(tgbotapi.NewMessage(chatID, "No authorized users found."))
 		} else {
 			bot.Send(tgbotapi.NewMessage(chatID, "Authorized Users:\n"+strings.Join(users, "\n")))
 		}
