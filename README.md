@@ -3,7 +3,7 @@
 A Telegram bot to control your Linux server remotely via `systemctl` and `reboot`.
 
 ## Features
-- `/start`: Show help and commands.
+- `/start` or `/help`: Show help and commands.
 - `/status`: Check server uptime.
 - `/list_services`: List available services (all running or from a whitelist).
 - `/restart_service <name>`: Restart a specific service.
@@ -11,6 +11,7 @@ A Telegram bot to control your Linux server remotely via `systemctl` and `reboot
 - **Multi-user Support**: Add and manage additional users via SQLite with granular permissions.
   - `/add_user <id> <perms>`: Grant permissions (e.g., `status,list_services` or `*` for all).
   - `/delete_user <id>`: Remove a user.
+  - `/list_users`: List all additional users and their permissions.
 - Logging to a dedicated Telegram channel.
 - Whitelist for controllable services.
 - **High Availability**: Configured to run with elevated privileges and scheduling priority to remain responsive even when the server is under extreme load.

@@ -130,6 +130,25 @@ func (s *UserStore) HasPermission(id int64, perm string) bool {
 	return slices.Contains(strings.Split(perms, ","), perm)
 }
 
+func (s *UserStore) ListUsers() ([]string, error) {
+	rows, err := s.db.Query("SELECT id, permissions FROM users")
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var result []string
+	for rows.Next() {
+		var id int64
+		var perms string
+		if err := rows.Scan(&id, &perms); err != nil {
+			return nil, err
+		}
+		result = append(result, fmt.Sprintf("User: %d, Perms: %s", id, perms))
+	}
+	return result, nil
+}
+
 func (s *UserStore) Close() error {
 	return s.db.Close()
 }
@@ -236,13 +255,23 @@ func handleCommand(bot *tgbotapi.BotAPI, msg *tgbotapi.Message, logger *Telegram
 
 	logger.Printf("Command received: /%s from chat %d (User %d)", command, chatID, userID)
 
+	helpText := "Available commands:\n" +
+		"/status - Check server uptime\n" +
+		"/list_services - List available services\n" +
+		"/restart_service <name> - Restart a service\n" +
+		"/restart_server - Reboot the server"
+
+	if isOwner {
+		helpText += "\n\nOwner commands:\n" +
+			"/add_user <id> <perms> - Add/Update user permissions\n" +
+			"/delete_user <id> - Remove a user\n" +
+			"/list_users - List all users with permissions\n" +
+			"Permissions can be '*' or comma-separated list of commands."
+	}
+
 	switch command {
-	case "start":
-		help := "Welcome! Use /restart_server, /restart_service <name>, /list_services, or /status to control your server."
-		if isOwner {
-			help += "\n\nOwner commands:\n/add_user <id> <perms>\n/delete_user <id>\nPermissions can be '*' or comma-separated list of commands."
-		}
-		reply := tgbotapi.NewMessage(chatID, help)
+	case "start", "help":
+		reply := tgbotapi.NewMessage(chatID, "Welcome! "+helpText)
 		bot.Send(reply)
 
 	case "restart_server":
@@ -356,6 +385,22 @@ func handleCommand(bot *tgbotapi.BotAPI, msg *tgbotapi.Message, logger *Telegram
 		} else {
 			bot.Send(tgbotapi.NewMessage(chatID, fmt.Sprintf("User %d deleted.", id)))
 			logger.Printf("User %d deleted by owner", id)
+		}
+
+	case "list_users":
+		if !isOwner {
+			bot.Send(tgbotapi.NewMessage(chatID, "Only the owner can list users."))
+			return
+		}
+		users, err := userStore.ListUsers()
+		if err != nil {
+			bot.Send(tgbotapi.NewMessage(chatID, "Failed to list users: "+err.Error()))
+			return
+		}
+		if len(users) == 0 {
+			bot.Send(tgbotapi.NewMessage(chatID, "No additional users found."))
+		} else {
+			bot.Send(tgbotapi.NewMessage(chatID, "Authorized Users:\n"+strings.Join(users, "\n")))
 		}
 
 	default:
