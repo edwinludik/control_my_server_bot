@@ -141,6 +141,7 @@ func (s *UserStore) ListUsers(ownerID int64) ([]string, error) {
 	if err != nil {
 		return nil, err
 	}
+	//goland:noinspection GoUnhandledErrorResult
 	defer rows.Close()
 
 	var result []string
@@ -152,6 +153,10 @@ func (s *UserStore) ListUsers(ownerID int64) ([]string, error) {
 			return nil, err
 		}
 		result = append(result, fmt.Sprintf("User: %d", id))
+	}
+
+	if err := rows.Err(); err != nil {
+		return nil, err
 	}
 	return result, nil
 }
@@ -175,6 +180,7 @@ func main() {
 	if err != nil {
 		log.Fatalf("failed to initialize user store: %v", err)
 	}
+	//goland:noinspection GoUnhandledErrorResult
 	defer userStore.Close()
 
 	bot, err := tgbotapi.NewBotAPI(cfg.Token)
