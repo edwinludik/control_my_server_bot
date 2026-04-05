@@ -322,6 +322,7 @@ func handleCommand(bot *tgbotapi.BotAPI, msg *tgbotapi.Message, logger *Telegram
 	logger.Printf("Command received: /%s from chat %d (User %d)", command, chatID, userID)
 
 	helpText := "Available commands:\n" +
+		"/ping - Return \"Pong!\"\n" +
 		"/status - Check server status, RAM, CPU, and disk space\n" +
 		"/get_cpu_usage - Show current CPU usage\n" +
 		"/get_ram_usage - Show current RAM usage\n" +
@@ -338,6 +339,9 @@ func handleCommand(bot *tgbotapi.BotAPI, msg *tgbotapi.Message, logger *Telegram
 	}
 
 	switch command {
+	case "ping":
+		bot.Send(tgbotapi.NewMessage(chatID, "Pong!"))
+
 	case "start", "help":
 		reply := tgbotapi.NewMessage(chatID, "Welcome! "+helpText)
 		bot.Send(reply)
