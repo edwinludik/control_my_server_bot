@@ -87,10 +87,24 @@ type UserStore struct {
 	db *sql.DB
 }
 
-func NewUserStore(dbPath string) (*UserStore, error) {
-	db, err := sql.Open("sqlite", dbPath)
+func NewUserStore(dbPath string) (store *UserStore, err error) {
+	// Use DSN with WAL mode and busy timeout for better SQLite performance and reliability
+	dsn := fmt.Sprintf("file:%s?_pragma=journal_mode(WAL)&_pragma=busy_timeout(5000)", dbPath)
+	db, err := sql.Open("sqlite", dsn)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("open database: %w", err)
+	}
+
+	// Defer database closure on error
+	defer func() {
+		if err != nil {
+			_ = db.Close()
+		}
+	}()
+
+	// Verify connection
+	if err := db.Ping(); err != nil {
+		return nil, fmt.Errorf("ping database: %w", err)
 	}
 
 	// Ensure the database file has restricted permissions
@@ -100,7 +114,7 @@ func NewUserStore(dbPath string) (*UserStore, error) {
 		id INTEGER PRIMARY KEY
 	)`)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("create users table: %w", err)
 	}
 
 	return &UserStore{db: db}, nil
