@@ -107,6 +107,11 @@ For a cleaner installation, you can build and install a package for your specifi
 4. Push to the branch (`git push origin feature/amazing-feature`).
 5. Open a Pull Request.
 
+Each Pull Request and push to `main` triggers a GitHub Action that:
+- Builds the Go binary.
+- Runs a security scan (`govulncheck`).
+- Generates Linux packages (.deb, .rpm, .pkg.tar.zst) as artifacts.
+
 ## License
 
 This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
