@@ -47,22 +47,28 @@ A Telegram bot to control your Linux server remotely via `systemctl` and `reboot
      sudo systemctl start control-bot.service
      ```
 
-### 2. Debian Package (.deb)
-For a cleaner installation on Debian-based systems (Ubuntu, Debian, etc.), you can build and install a `.deb` package.
+### 2. Linux Packages (.deb, .rpm, .pkg.tar.zst)
+For a cleaner installation, you can build and install a package for your specific distribution.
 
-**Building the package:**
+**Building the packages:**
 1. Install `nfpm` (e.g., via `go install github.com/goreleaser/nfpm/v2/cmd/nfpm@latest`).
-2. Run the build:
+2. Run the build for all platforms:
    ```bash
-   make package-deb
+   make packages
+   ```
+   Or for a specific platform:
+   ```bash
+   make package-deb   # Debian/Ubuntu
+   make package-rpm   # RedHat/CentOS/Fedora
+   make package-arch  # Arch Linux
    ```
 
 **Installing the package:**
-1. Copy the generated `.deb` file to your server.
+1. Copy the generated package file to your server.
 2. Install it:
-   ```bash
-   sudo dpkg -i control-my-server-bot_1.0.0_amd64.deb
-   ```
+   - **Debian/Ubuntu**: `sudo dpkg -i control-my-server-bot_1.0.0_amd64.deb`
+   - **RedHat/CentOS/Fedora**: `sudo rpm -i control-my-server-bot-1.0.0.x86_64.rpm`
+   - **Arch Linux**: `sudo pacman -U control-my-server-bot-1.0.0-1-x86_64.pkg.tar.zst`
 3. Configure the bot:
    Edit `/etc/control-my-server-bot/.env` with your credentials.
 4. Restart the service:

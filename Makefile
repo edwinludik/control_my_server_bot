@@ -10,7 +10,18 @@ build-linux:
 package-deb: build-linux
 	nfpm pkg --packager deb --target .
 
+.PHONY: package-rpm
+package-rpm: build-linux
+	nfpm pkg --packager rpm --target .
+
+.PHONY: package-arch
+package-arch: build-linux
+	nfpm pkg --packager archlinux --target .
+
+.PHONY: packages
+packages: package-deb package-rpm package-arch
+
 .PHONY: clean
 clean:
 	rm -f $(BINARY_NAME)
-	rm -f *.deb
+	rm -f *.deb *.rpm *.pkg.tar.zst

@@ -16,7 +16,7 @@ contents:
   - src: control_my_server_bot
     dst: /usr/bin/control-my-server-bot
   - src: control-bot.service
-    dst: /lib/systemd/system/control-my-server-bot.service
+    dst: /usr/lib/systemd/system/control-my-server-bot.service
   - src: .env.example
     dst: /etc/control-my-server-bot/.env
     type: config
@@ -28,7 +28,16 @@ scripts:
 
 overrides:
   deb:
+    contents:
+      - src: control-bot.service
+        dst: /lib/systemd/system/control-my-server-bot.service
     depends:
       - systemd
     recommends:
       - procps
+  rpm:
+    depends:
+      - systemd
+  archlinux:
+    depends:
+      - systemd
