@@ -39,16 +39,16 @@ A Telegram bot to control your Linux server remotely via `systemctl` and `reboot
    go build -o control_my_server_bot main.go
    ```
 4. **Install as a systemd service**:
-   - Copy the provided `control-bot.service` to `/etc/systemd/system/`:
+   - Copy the provided `control_my_server_bot.service` to `/etc/systemd/system/`:
      ```bash
-     sudo cp control-bot.service /etc/systemd/system/
+     sudo cp control_my_server_bot.service /etc/systemd/system/
      ```
-   - Update the `WorkingDirectory` and `ExecStart` in `/etc/systemd/system/control-bot.service` if you installed the bot in a different location.
+   - Update the `WorkingDirectory` and `ExecStart` in `/etc/systemd/system/control_my_server_bot.service` if you installed the bot in a different location.
    - Reload systemd, enable and start the service:
      ```bash
      sudo systemctl daemon-reload
-     sudo systemctl enable control-bot.service
-     sudo systemctl start control-bot.service
+     sudo systemctl enable control_my_server_bot.service
+     sudo systemctl start control_my_server_bot.service
      ```
 
 ### 2. Linux Packages (.deb, .rpm, .pkg.tar.zst)

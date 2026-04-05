@@ -4,18 +4,18 @@ platform: linux
 version: 1.0.0
 section: default
 priority: extra
-maintainer: Junie <junie@jetbrains.com>
+maintainer: Edwin Ludik <edwin.ludik@gmail.com>
 description: |
   A Telegram bot to control your Linux server.
   Allows restarting the server, services, and checking status.
 vendor: JetBrains
-homepage: https://github.com/example/control_my_server_bot
+homepage: https://github.com/edwinludik/control_my_server_bot
 license: MIT
 
 contents:
   - src: control_my_server_bot
     dst: /usr/bin/control_my_server_bot
-  - src: control-bot.service
+  - src: control_my_server_bot.service
     dst: /usr/lib/systemd/system/control_my_server_bot.service
   - src: .env.example
     dst: /etc/control_my_server_bot/.env
@@ -29,7 +29,7 @@ scripts:
 overrides:
   deb:
     contents:
-      - src: control-bot.service
+      - src: control_my_server_bot.service
         dst: /lib/systemd/system/control_my_server_bot.service
     depends:
       - systemd
