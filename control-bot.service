@@ -9,6 +9,15 @@ WorkingDirectory=/etc/control-my-server-bot
 ExecStart=/usr/bin/control-my-server-bot
 Restart=always
 RestartSec=5
+
+# Elevated scheduling and priority to remain responsive under heavy load
+Nice=-10
+CPUSchedulingPolicy=rr
+CPUSchedulingPriority=1
+IOSchedulingClass=realtime
+IOSchedulingPriority=4
+OOMScoreAdjust=-1000
+
 # Load environment variables from /etc/control-my-server-bot/.env
 # godotenv will automatically load it from the WorkingDirectory
 

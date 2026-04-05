@@ -10,6 +10,7 @@ A Telegram bot to control your Linux server remotely via `systemctl` and `reboot
 - `/restart_server`: Reboot the server.
 - Logging to a dedicated Telegram channel.
 - Whitelist for controllable services.
+- **High Availability**: Configured to run with elevated privileges and scheduling priority to remain responsive even when the server is under extreme load.
 
 ## Prerequisites
 - Go 1.26 or higher (for building).
@@ -80,5 +81,7 @@ For a cleaner installation, you can build and install a package for your specifi
 - Check service status: `sudo systemctl status control-my-server-bot.service`
 - Send `/start` to your bot on Telegram.
 
-## Security Note
-The bot uses `sudo` for `reboot` and `systemctl restart`. Ensure the user running the bot (as configured in the service file) has the necessary `sudo` permissions without password prompt if you want it to run seamlessly. In the provided template, it runs as `root`.
+## Security and Responsiveness Note
+The bot uses `sudo` (implicitly via `User=root`) for `reboot` and `systemctl restart`. In the provided template, it runs as `root`.
+
+The bot is also configured with high scheduling and I/O priority (`Nice=-10`, `CPUSchedulingPolicy=rr`, `IOSchedulingClass=realtime`) and protected from OOM-killing (`OOMScoreAdjust=-1000`). This ensures it remains responsive even when the server is under extreme load.
