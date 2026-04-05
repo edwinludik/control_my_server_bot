@@ -4,14 +4,18 @@ A Telegram bot to control your Linux server remotely via `systemctl` and `reboot
 
 ## Features
 - `/start` or `/help`: Show help and commands.
-- `/status`: Check server uptime.
-- `/list_services`: List available services (all running or from a whitelist).
+- `/ping`: Return "Pong!".
+- `/status`: Check server uptime, CPU, RAM, and disk space.
+- `/get_cpu_usage`: Show current CPU usage.
+- `/get_ram_usage`: Show current RAM usage.
+- `/get_disk_usage`: Show free disk space on all drives.
+- `/get_services`: List available services (all running or from a whitelist).
 - `/restart_service <name>`: Restart a specific service.
 - `/restart_server`: Reboot the server.
 - **Multi-user Support**: Add and manage additional users via SQLite.
-  - `/add_user <id>`: Grant full permissions to a user.
-  - `/delete_user <id>`: Remove a user.
-  - `/list_users`: List all additional authorized users.
+  - `/add_user <id>`: Grant full permissions to a user (Owner only).
+  - `/delete_user <id>`: Remove a user (Owner only).
+  - `/get_users`: List all additional authorized users (Owner only).
 - Logging to a dedicated Telegram channel.
 - Whitelist for controllable services.
 - **High Availability**: Configured to run with elevated privileges and scheduling priority to remain responsive even when the server is under extreme load.
@@ -23,17 +27,31 @@ A Telegram bot to control your Linux server remotely via `systemctl` and `reboot
 - Your Telegram user ID (owner).
 - A Telegram channel ID for logs.
 
+## Configuration
+
+The bot is configured via environment variables. You can provide these in a `.env` file in the working directory.
+
+| Variable | Description | Default |
+|----------|-------------|---------|
+| `TELEGRAM_BOT_TOKEN` | **Required**. Your Telegram bot token. | |
+| `TELEGRAM_OWNER_ID` | **Required**. Your Telegram User ID. | |
+| `TELEGRAM_LOG_CHANNEL_ID` | **Required**. Telegram Channel ID for logs. | |
+| `CONTROLLED_SERVICES` | Comma-separated list of services the bot can control. | (All available) |
+| `DATABASE_PATH` | Path to the SQLite database file. | `.user_ids` |
+
 ## Installation Options
 
 ### 1. Manual Installation
-1. **Clone or copy the bot files** to your server (e.g., `/opt/control_my_server_bot`).
+1. **Clone the repository**:
+   ```bash
+   git clone https://github.com/edwinludik/control_my_server_bot.git
+   cd control_my_server_bot
+   ```
 2. **Configure environment variables**:
-   Create a `.env` file in the same directory:
-   ```env
-   TELEGRAM_BOT_TOKEN=your_token_here
-   TELEGRAM_OWNER_ID=your_id_here
-   TELEGRAM_LOG_CHANNEL_ID=your_channel_id_here
-   CONTROLLED_SERVICES=nginx,docker,mysql  # Optional: comma-separated list
+   ```bash
+   cp .env.example .env
+   # Edit .env with your credentials
+   nano .env
    ```
 3. **Build the bot**:
    ```bash
@@ -81,9 +99,17 @@ For a cleaner installation, you can build and install a package for your specifi
    sudo systemctl restart control_my_server_bot.service
    ```
 
-## Verify
-- Check service status: `sudo systemctl status control_my_server_bot.service`
-- Send `/start` to your bot on Telegram.
+## Contributing
+
+1. Fork the repository.
+2. Create your feature branch (`git checkout -b feature/amazing-feature`).
+3. Commit your changes (`git commit -m 'Add some amazing feature'`).
+4. Push to the branch (`git push origin feature/amazing-feature`).
+5. Open a Pull Request.
+
+## License
+
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
 
 ## Security and Responsiveness Note
 The bot uses `sudo` (implicitly via `User=root`) for `reboot` and `systemctl restart`. In the provided template, it runs as `root`.
