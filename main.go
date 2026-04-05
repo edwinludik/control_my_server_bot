@@ -322,8 +322,9 @@ func handleCommand(bot *tgbotapi.BotAPI, msg *tgbotapi.Message, logger *Telegram
 	logger.Printf("Command received: /%s from chat %d (User %d)", command, chatID, userID)
 
 	helpText := "Available commands:\n" +
-		"/status - Check server status and disk space\n" +
-		"/get_free_disk_space - Show free disk space on all drives\n" +
+		"/status - Check server status, RAM usage, and disk space\n" +
+		"/get_ram_usage - Show current RAM usage\n" +
+		"/get_disk_usage - Show free disk space on all drives\n" +
 		"/list_services - List available services\n" +
 		"/restart_service <name> - Restart a service\n" +
 		"/restart_server - Reboot the server"
@@ -415,10 +416,23 @@ func handleCommand(bot *tgbotapi.BotAPI, msg *tgbotapi.Message, logger *Telegram
 		if err != nil {
 			uptime, _ = exec.Command("uptime").Output()
 		}
+		ramUsage, _ := getRAMUsageInfo()
 		diskInfo, _ := getDiskSpaceInfo()
-		bot.Send(tgbotapi.NewMessage(chatID, fmt.Sprintf("Server Status:\nUptime: %s\n\nDisk Space:\n%s", strings.TrimSpace(string(uptime)), diskInfo)))
+		bot.Send(tgbotapi.NewMessage(chatID, fmt.Sprintf("Server Status:\nUptime: %s\n\nRAM Usage:\n%s\n\nDisk Space:\n%s", strings.TrimSpace(string(uptime)), ramUsage, diskInfo)))
 
-	case "get_free_disk_space":
+	case "get_ram_usage":
+		if !isAuthorized {
+			bot.Send(tgbotapi.NewMessage(chatID, "Permission denied."))
+			return
+		}
+		ramUsage, err := getRAMUsageInfo()
+		if err != nil {
+			bot.Send(tgbotapi.NewMessage(chatID, "Failed to get RAM usage: "+err.Error()))
+			return
+		}
+		bot.Send(tgbotapi.NewMessage(chatID, "RAM Usage:\n"+ramUsage))
+
+	case "get_disk_usage":
 		if !isAuthorized {
 			bot.Send(tgbotapi.NewMessage(chatID, "Permission denied."))
 			return
@@ -488,6 +502,27 @@ func handleCommand(bot *tgbotapi.BotAPI, msg *tgbotapi.Message, logger *Telegram
 	default:
 		bot.Send(tgbotapi.NewMessage(chatID, "I don't know that command"))
 	}
+}
+
+func getRAMUsageInfo() (string, error) {
+	// Using free -h to get human-readable memory usage
+	out, err := exec.Command("free", "-h").Output()
+	if err != nil {
+		// Fallback for macOS if free -h is not available
+		out, err = exec.Command("top", "-l", "1", "-s", "0", "-n", "0").Output()
+		if err != nil {
+			return "", err
+		}
+		// Basic extraction for macOS top output
+		lines := strings.Split(string(out), "\n")
+		for _, line := range lines {
+			if strings.HasPrefix(line, "PhysMem:") {
+				return line, nil
+			}
+		}
+		return string(out), nil
+	}
+	return strings.TrimSpace(string(out)), nil
 }
 
 func getDiskSpaceInfo() (string, error) {
