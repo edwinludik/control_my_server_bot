@@ -5,8 +5,8 @@ After=network.target
 [Service]
 Type=simple
 User=root
-WorkingDirectory=/etc/control_my_server_bot
-ExecStart=/usr/bin/control_my_server_bot
+WorkingDirectory=/opt/control_my_server_bot
+ExecStart=/opt/control_my_server_bot/control_my_server_bot
 Restart=always
 RestartSec=5
 
@@ -18,7 +18,7 @@ IOSchedulingClass=realtime
 IOSchedulingPriority=4
 OOMScoreAdjust=-1000
 
-# Load environment variables from /etc/control_my_server_bot/.env
+# Load environment variables from /opt/control_my_server_bot/.env
 # godotenv will automatically load it from the WorkingDirectory
 
 [Install]

@@ -217,11 +217,11 @@ func main() {
 		userID := update.Message.From.ID
 
 		// Rate limiting
-		if !limiter.Allow(userID) {
-			logger.Printf("Rate limit exceeded for User ID: %d", userID)
-			// Silent ignore or send message? Let's send a quiet one.
-			// msg := tgbotapi.NewMessage(update.Message.Chat.ID, "Too many requests. Please wait.")
-			// bot.Send(msg)
+		if allowed, cooldown := limiter.Allow(userID); !allowed {
+			logger.Printf("Rate limit exceeded for User ID: %d (Cooldown: %v)", userID, cooldown.Round(time.Second))
+			// Send message with cooldown time
+			msg := tgbotapi.NewMessage(update.Message.Chat.ID, fmt.Sprintf("Too many requests. Please wait %v.", cooldown.Round(time.Second)))
+			bot.Send(msg)
 			continue
 		}
 
@@ -258,7 +258,7 @@ func NewRateLimiter(limit int, interval time.Duration) *RateLimiter {
 	}
 }
 
-func (rl *RateLimiter) Allow(userID int64) bool {
+func (rl *RateLimiter) Allow(userID int64) (bool, time.Duration) {
 	rl.mu.Lock()
 	defer rl.mu.Unlock()
 
@@ -275,11 +275,16 @@ func (rl *RateLimiter) Allow(userID int64) bool {
 
 	if len(current) >= rl.limit {
 		rl.counts[userID] = current
-		return false
+		// The cooldown ends when the oldest timestamp in 'current' falls out of the window
+		cooldown := time.Until(current[0].Add(rl.interval))
+		if cooldown < 0 {
+			cooldown = 0
+		}
+		return false, cooldown
 	}
 
 	rl.counts[userID] = append(current, now)
-	return true
+	return true, 0
 }
 
 type TelegramLogger struct {

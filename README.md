@@ -75,7 +75,7 @@ For a cleaner installation, you can build and install a package for your specifi
    - **RedHat/CentOS/Fedora**: `sudo rpm -i control_my_server_bot-1.0.0.x86_64.rpm`
    - **Arch Linux**: `sudo pacman -U control_my_server_bot-1.0.0-1-x86_64.pkg.tar.zst`
 3. Configure the bot:
-   Edit `/etc/control_my_server_bot/.env` with your credentials.
+   Edit `/opt/control_my_server_bot/.env` with your credentials.
 4. Restart the service:
    ```bash
    sudo systemctl restart control_my_server_bot.service

@@ -14,11 +14,11 @@ license: MIT
 
 contents:
   - src: control_my_server_bot
-    dst: /usr/bin/control_my_server_bot
+    dst: /opt/control_my_server_bot/control_my_server_bot
   - src: control_my_server_bot.service
     dst: /usr/lib/systemd/system/control_my_server_bot.service
   - src: .env.example
-    dst: /etc/control_my_server_bot/.env
+    dst: /opt/control_my_server_bot/.env
     type: config
 
 scripts:

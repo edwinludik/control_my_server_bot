@@ -11,5 +11,5 @@ if command -v systemctl >/dev/null 2>&1; then
 fi
 
 echo "Control My Server Bot installed and configured as a service."
-echo "Please edit /etc/control_my_server_bot/.env with your Telegram credentials."
+echo "Please edit /opt/control_my_server_bot/.env with your Telegram credentials."
 echo "Then restart the service: sudo systemctl restart $SERVICE_NAME"
