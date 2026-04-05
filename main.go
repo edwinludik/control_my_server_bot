@@ -322,10 +322,11 @@ func handleCommand(bot *tgbotapi.BotAPI, msg *tgbotapi.Message, logger *Telegram
 	logger.Printf("Command received: /%s from chat %d (User %d)", command, chatID, userID)
 
 	helpText := "Available commands:\n" +
-		"/status - Check server status, RAM usage, and disk space\n" +
+		"/status - Check server status, RAM, CPU, and disk space\n" +
+		"/get_cpu_usage - Show current CPU usage\n" +
 		"/get_ram_usage - Show current RAM usage\n" +
 		"/get_disk_usage - Show free disk space on all drives\n" +
-		"/list_services - List available services\n" +
+		"/get_services - List available services\n" +
 		"/restart_service <name> - Restart a service\n" +
 		"/restart_server - Reboot the server"
 
@@ -333,7 +334,7 @@ func handleCommand(bot *tgbotapi.BotAPI, msg *tgbotapi.Message, logger *Telegram
 		helpText += "\n\nOwner commands:\n" +
 			"/add_user <id> - Add an authorized user\n" +
 			"/delete_user <id> - Remove a user\n" +
-			"/list_users - List all authorized users"
+			"/get_users - List all authorized users"
 	}
 
 	switch command {
@@ -390,7 +391,7 @@ func handleCommand(bot *tgbotapi.BotAPI, msg *tgbotapi.Message, logger *Telegram
 			logger.Printf(successStr)
 		}
 
-	case "list_services":
+	case "get_services":
 		if !isAuthorized {
 			bot.Send(tgbotapi.NewMessage(chatID, "Permission denied."))
 			return
@@ -416,9 +417,22 @@ func handleCommand(bot *tgbotapi.BotAPI, msg *tgbotapi.Message, logger *Telegram
 		if err != nil {
 			uptime, _ = exec.Command("uptime").Output()
 		}
+		cpuUsage, _ := getCPUUsageInfo()
 		ramUsage, _ := getRAMUsageInfo()
 		diskInfo, _ := getDiskSpaceInfo()
-		bot.Send(tgbotapi.NewMessage(chatID, fmt.Sprintf("Server Status:\nUptime: %s\n\nRAM Usage:\n%s\n\nDisk Space:\n%s", strings.TrimSpace(string(uptime)), ramUsage, diskInfo)))
+		bot.Send(tgbotapi.NewMessage(chatID, fmt.Sprintf("Server Status:\nUptime: %s\n\nCPU Usage:\n%s\n\nRAM Usage:\n%s\n\nDisk Space:\n%s", strings.TrimSpace(string(uptime)), cpuUsage, ramUsage, diskInfo)))
+
+	case "get_cpu_usage":
+		if !isAuthorized {
+			bot.Send(tgbotapi.NewMessage(chatID, "Permission denied."))
+			return
+		}
+		cpuUsage, err := getCPUUsageInfo()
+		if err != nil {
+			bot.Send(tgbotapi.NewMessage(chatID, "Failed to get CPU usage: "+err.Error()))
+			return
+		}
+		bot.Send(tgbotapi.NewMessage(chatID, "CPU Usage:\n"+cpuUsage))
 
 	case "get_ram_usage":
 		if !isAuthorized {
@@ -483,7 +497,7 @@ func handleCommand(bot *tgbotapi.BotAPI, msg *tgbotapi.Message, logger *Telegram
 			logger.Printf("User %d deleted by owner", id)
 		}
 
-	case "list_users":
+	case "get_users":
 		if !isOwner {
 			bot.Send(tgbotapi.NewMessage(chatID, "Only the owner can list users."))
 			return
@@ -502,6 +516,20 @@ func handleCommand(bot *tgbotapi.BotAPI, msg *tgbotapi.Message, logger *Telegram
 	default:
 		bot.Send(tgbotapi.NewMessage(chatID, "I don't know that command"))
 	}
+}
+
+func getCPUUsageInfo() (string, error) {
+	// Using top -bn1 | grep "Cpu(s)" for Linux
+	out, err := exec.Command("sh", "-c", "top -bn1 | grep \"Cpu(s)\"").Output()
+	if err != nil {
+		// Fallback for macOS: top -l 1 -n 0 | grep "CPU usage"
+		out, err = exec.Command("sh", "-c", "top -l 1 -n 0 | grep \"CPU usage\"").Output()
+		if err != nil {
+			return "", err
+		}
+		return strings.TrimSpace(string(out)), nil
+	}
+	return strings.TrimSpace(string(out)), nil
 }
 
 func getRAMUsageInfo() (string, error) {
