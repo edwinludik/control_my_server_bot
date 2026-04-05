@@ -322,7 +322,8 @@ func handleCommand(bot *tgbotapi.BotAPI, msg *tgbotapi.Message, logger *Telegram
 	logger.Printf("Command received: /%s from chat %d (User %d)", command, chatID, userID)
 
 	helpText := "Available commands:\n" +
-		"/status - Check server uptime\n" +
+		"/status - Check server status and disk space\n" +
+		"/get_free_disk_space - Show free disk space on all drives\n" +
 		"/list_services - List available services\n" +
 		"/restart_service <name> - Restart a service\n" +
 		"/restart_server - Reboot the server"
@@ -414,7 +415,20 @@ func handleCommand(bot *tgbotapi.BotAPI, msg *tgbotapi.Message, logger *Telegram
 		if err != nil {
 			uptime, _ = exec.Command("uptime").Output()
 		}
-		bot.Send(tgbotapi.NewMessage(chatID, fmt.Sprintf("Server Status:\nUptime: %s", strings.TrimSpace(string(uptime)))))
+		diskInfo, _ := getDiskSpaceInfo()
+		bot.Send(tgbotapi.NewMessage(chatID, fmt.Sprintf("Server Status:\nUptime: %s\n\nDisk Space:\n%s", strings.TrimSpace(string(uptime)), diskInfo)))
+
+	case "get_free_disk_space":
+		if !isAuthorized {
+			bot.Send(tgbotapi.NewMessage(chatID, "Permission denied."))
+			return
+		}
+		diskInfo, err := getDiskSpaceInfo()
+		if err != nil {
+			bot.Send(tgbotapi.NewMessage(chatID, "Failed to get disk space: "+err.Error()))
+			return
+		}
+		bot.Send(tgbotapi.NewMessage(chatID, "Free Disk Space:\n"+diskInfo))
 
 	case "add_user":
 		if !isOwner {
@@ -474,6 +488,34 @@ func handleCommand(bot *tgbotapi.BotAPI, msg *tgbotapi.Message, logger *Telegram
 	default:
 		bot.Send(tgbotapi.NewMessage(chatID, "I don't know that command"))
 	}
+}
+
+func getDiskSpaceInfo() (string, error) {
+	// Using df -h to get human-readable disk space info on all mounted filesystems
+	out, err := exec.Command("df", "-h").Output()
+	if err != nil {
+		return "", err
+	}
+
+	lines := strings.Split(strings.TrimSpace(string(out)), "\n")
+	if len(lines) < 2 {
+		return "No disk space information available.", nil
+	}
+
+	// Filter and format the output to be cleaner
+	var result []string
+	result = append(result, lines[0]) // Header
+
+	for i := 1; i < len(lines); i++ {
+		line := lines[i]
+		// Skip temporary or virtual filesystems if they are too many
+		if strings.HasPrefix(line, "tmpfs") || strings.HasPrefix(line, "devtmpfs") || strings.HasPrefix(line, "udev") {
+			continue
+		}
+		result = append(result, line)
+	}
+
+	return strings.Join(result, "\n"), nil
 }
 
 func getAvailableServices(cfg *Config) ([]string, error) {
