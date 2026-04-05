@@ -5,6 +5,7 @@ import (
 	"log"
 	"os"
 	"os/exec"
+	"slices"
 	"strconv"
 	"strings"
 
@@ -13,9 +14,10 @@ import (
 )
 
 type Config struct {
-	Token        string
-	OwnerID      int64
-	LogChannelID int64
+	Token              string
+	OwnerID            int64
+	LogChannelID       int64
+	ControlledServices []string
 }
 
 func loadConfig() (*Config, error) {
@@ -44,10 +46,23 @@ func loadConfig() (*Config, error) {
 		return nil, fmt.Errorf("invalid TELEGRAM_LOG_CHANNEL_ID: %v", err)
 	}
 
+	controlledServicesStr := os.Getenv("CONTROLLED_SERVICES")
+	var controlledServices []string
+	if controlledServicesStr != "" {
+		services := strings.Split(controlledServicesStr, ",")
+		for _, s := range services {
+			trimmed := strings.TrimSpace(s)
+			if trimmed != "" {
+				controlledServices = append(controlledServices, trimmed)
+			}
+		}
+	}
+
 	return &Config{
-		Token:        token,
-		OwnerID:      ownerID,
-		LogChannelID: logChannelID,
+		Token:              token,
+		OwnerID:            ownerID,
+		LogChannelID:       logChannelID,
+		ControlledServices: controlledServices,
 	}, nil
 }
 
@@ -71,6 +86,18 @@ func main() {
 
 	logger.Printf("Authorized on account %s", bot.Self.UserName)
 
+	// Log available services on start
+	services, err := getAvailableServices(cfg)
+	if err != nil {
+		logger.Printf("Failed to get available services on start: %v", err)
+	} else {
+		if len(services) > 0 {
+			logger.Printf("Available Services on startup:\n%s", strings.Join(services, "\n"))
+		} else {
+			logger.Printf("No available services found on startup.")
+		}
+	}
+
 	u := tgbotapi.NewUpdate(0)
 	u.Timeout = 60
 
@@ -92,7 +119,7 @@ func main() {
 			continue
 		}
 
-		handleCommand(bot, update.Message, logger)
+		handleCommand(bot, update.Message, logger, cfg)
 	}
 }
 
@@ -115,7 +142,7 @@ func (l *TelegramLogger) Printf(format string, v ...any) {
 	_, _ = l.bot.Send(tgMsg)
 }
 
-func handleCommand(bot *tgbotapi.BotAPI, msg *tgbotapi.Message, logger *TelegramLogger) {
+func handleCommand(bot *tgbotapi.BotAPI, msg *tgbotapi.Message, logger *TelegramLogger, cfg *Config) {
 	chatID := msg.Chat.ID
 	command := msg.Command()
 	args := msg.CommandArguments()
@@ -124,7 +151,7 @@ func handleCommand(bot *tgbotapi.BotAPI, msg *tgbotapi.Message, logger *Telegram
 
 	switch command {
 	case "start":
-		reply := tgbotapi.NewMessage(chatID, "Welcome! Use /restart_server, /restart_service <name>, or /status to control your server.")
+		reply := tgbotapi.NewMessage(chatID, "Welcome! Use /restart_server, /restart_service <name>, /list_services, or /status to control your server.")
 		bot.Send(reply)
 
 	case "restart_server":
@@ -145,6 +172,13 @@ func handleCommand(bot *tgbotapi.BotAPI, msg *tgbotapi.Message, logger *Telegram
 		}
 
 		logger.Printf("Restarting service %s requested by chat %d", serviceName, chatID)
+
+		if len(cfg.ControlledServices) > 0 && !slices.Contains(cfg.ControlledServices, serviceName) {
+			bot.Send(tgbotapi.NewMessage(chatID, fmt.Sprintf("Service %s is not in the controlled list.", serviceName)))
+			logger.Printf("Unauthorized attempt to restart service: %s", serviceName)
+			return
+		}
+
 		bot.Send(tgbotapi.NewMessage(chatID, fmt.Sprintf("Restarting service: %s...", serviceName)))
 		cmd := exec.Command("sudo", "systemctl", "restart", serviceName)
 		if err := cmd.Run(); err != nil {
@@ -157,6 +191,19 @@ func handleCommand(bot *tgbotapi.BotAPI, msg *tgbotapi.Message, logger *Telegram
 			logger.Printf(successStr)
 		}
 
+	case "list_services":
+		services, err := getAvailableServices(cfg)
+		if err != nil {
+			bot.Send(tgbotapi.NewMessage(chatID, "Failed to list services: "+err.Error()))
+			return
+		}
+
+		if len(services) == 0 {
+			bot.Send(tgbotapi.NewMessage(chatID, "No services found."))
+		} else {
+			bot.Send(tgbotapi.NewMessage(chatID, "Available Services:\n"+strings.Join(services, "\n")))
+		}
+
 	case "status":
 		uptime, err := exec.Command("uptime", "-p").Output()
 		if err != nil {
@@ -167,4 +214,28 @@ func handleCommand(bot *tgbotapi.BotAPI, msg *tgbotapi.Message, logger *Telegram
 	default:
 		bot.Send(tgbotapi.NewMessage(chatID, "I don't know that command"))
 	}
+}
+
+func getAvailableServices(cfg *Config) ([]string, error) {
+	if len(cfg.ControlledServices) > 0 {
+		return cfg.ControlledServices, nil
+	}
+
+	// List all services if no specific list is provided
+	out, err := exec.Command("systemctl", "list-units", "--type=service", "--state=running", "--no-legend").Output()
+	if err != nil {
+		return nil, err
+	}
+
+	var services []string
+	lines := strings.Split(string(out), "\n")
+	for _, line := range lines {
+		fields := strings.Fields(line)
+		if len(fields) > 0 {
+			// systemctl list-units output: UNIT LOAD ACTIVE SUB DESCRIPTION
+			// Fields[0] is the service name
+			services = append(services, fields[0])
+		}
+	}
+	return services, nil
 }
