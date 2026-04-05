@@ -88,4 +88,17 @@ For a cleaner installation, you can build and install a package for your specifi
 ## Security and Responsiveness Note
 The bot uses `sudo` (implicitly via `User=root`) for `reboot` and `systemctl restart`. In the provided template, it runs as `root`.
 
+### Hardening Measures
+- **Rate Limiting**: Commands are rate-limited to 5 per minute per user to prevent spam.
+- **Service Name Validation**: Input for `/restart_service` is validated against a strict regex (`^[a-zA-Z0-9\-_.]+$`) to prevent command injection.
+- **File Permissions**: The bot automatically attempts to set restricted permissions (`0600`) on the `.env` and SQLite database files.
+- **Error Sanitization**: System-level error details are logged to the private log channel but not sent directly to the user who triggered the command.
+
+### Recommended Sudo Configuration
+If you don't want to run the bot as `root`, you can run it as a normal user and configure `sudo` to allow only specific commands without a password. Add the following to `/etc/sudoers.d/control-bot`:
+```sudoers
+control-bot ALL=(ALL) NOPASSWD: /usr/bin/systemctl restart *, /usr/sbin/reboot
+```
+*(Replace `control-bot` with the actual user running the bot and ensure paths match your system).*
+
 The bot is also configured with high scheduling and I/O priority (`Nice=-10`, `CPUSchedulingPolicy=rr`, `IOSchedulingClass=realtime`) and protected from OOM-killing (`OOMScoreAdjust=-1000`). This ensures it remains responsive even when the server is under extreme load.

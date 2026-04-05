@@ -6,9 +6,12 @@ import (
 	"log"
 	"os"
 	"os/exec"
+	"regexp"
 	"slices"
 	"strconv"
 	"strings"
+	"sync"
+	"time"
 
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
 	"github.com/joho/godotenv"
@@ -66,6 +69,11 @@ func loadConfig() (*Config, error) {
 		dbPath = ".user_ids"
 	}
 
+	// Ensure .env has restricted permissions if it exists
+	if _, err := os.Stat(".env"); err == nil {
+		_ = os.Chmod(".env", 0600)
+	}
+
 	return &Config{
 		Token:              token,
 		OwnerID:            ownerID,
@@ -84,6 +92,9 @@ func NewUserStore(dbPath string) (*UserStore, error) {
 	if err != nil {
 		return nil, err
 	}
+
+	// Ensure the database file has restricted permissions
+	_ = os.Chmod(dbPath, 0600)
 
 	_, err = db.Exec(`CREATE TABLE IF NOT EXISTS users (
 		id INTEGER PRIMARY KEY
@@ -161,6 +172,8 @@ func main() {
 
 	logger.Printf("Authorized on account %s", bot.Self.UserName)
 
+	limiter := NewRateLimiter(5, time.Minute) // 5 commands per minute per user
+
 	// Log available services on start
 	services, err := getAvailableServices(cfg)
 	if err != nil {
@@ -187,22 +200,72 @@ func main() {
 			continue
 		}
 
+		userID := update.Message.From.ID
+
+		// Rate limiting
+		if !limiter.Allow(userID) {
+			logger.Printf("Rate limit exceeded for User ID: %d", userID)
+			// Silent ignore or send message? Let's send a quiet one.
+			// msg := tgbotapi.NewMessage(update.Message.Chat.ID, "Too many requests. Please wait.")
+			// bot.Send(msg)
+			continue
+		}
+
 		// Check authorization: Owner or exists in userStore
-		if update.Message.From.ID != cfg.OwnerID {
-			authorized, err := userStore.UserExists(update.Message.From.ID)
+		if userID != cfg.OwnerID {
+			authorized, err := userStore.UserExists(userID)
 			if err != nil {
-				logger.Printf("Error checking authorization for %d: %v", update.Message.From.ID, err)
+				logger.Printf("Error checking authorization for %d: %v", userID, err)
 			}
 			if !authorized {
 				msg := tgbotapi.NewMessage(update.Message.Chat.ID, "Access Denied.")
 				bot.Send(msg)
-				logger.Printf("Unauthorized access attempt from User ID: %d", update.Message.From.ID)
+				logger.Printf("Unauthorized access attempt from User ID: %d", userID)
 				continue
 			}
 		}
 
 		handleCommand(bot, update.Message, logger, cfg, userStore)
 	}
+}
+
+type RateLimiter struct {
+	mu       sync.Mutex
+	counts   map[int64][]time.Time
+	limit    int
+	interval time.Duration
+}
+
+func NewRateLimiter(limit int, interval time.Duration) *RateLimiter {
+	return &RateLimiter{
+		counts:   make(map[int64][]time.Time),
+		limit:    limit,
+		interval: interval,
+	}
+}
+
+func (rl *RateLimiter) Allow(userID int64) bool {
+	rl.mu.Lock()
+	defer rl.mu.Unlock()
+
+	now := time.Now()
+	cutoff := now.Add(-rl.interval)
+
+	// Filter out old timestamps
+	var current []time.Time
+	for _, t := range rl.counts[userID] {
+		if t.After(cutoff) {
+			current = append(current, t)
+		}
+	}
+
+	if len(current) >= rl.limit {
+		rl.counts[userID] = current
+		return false
+	}
+
+	rl.counts[userID] = append(current, now)
+	return true
 }
 
 type TelegramLogger struct {
@@ -223,6 +286,8 @@ func (l *TelegramLogger) Printf(format string, v ...any) {
 	tgMsg := tgbotapi.NewMessage(l.channelID, msg)
 	_, _ = l.bot.Send(tgMsg)
 }
+
+var serviceNameRegex = regexp.MustCompile(`^[a-zA-Z0-9\-_.]+$`)
 
 func handleCommand(bot *tgbotapi.BotAPI, msg *tgbotapi.Message, logger *TelegramLogger, cfg *Config, userStore *UserStore) {
 	chatID := msg.Chat.ID
@@ -269,9 +334,8 @@ func handleCommand(bot *tgbotapi.BotAPI, msg *tgbotapi.Message, logger *Telegram
 		bot.Send(tgbotapi.NewMessage(chatID, "Restarting server..."))
 		cmd := exec.Command("sudo", "reboot")
 		if err := cmd.Run(); err != nil {
-			errStr := fmt.Sprintf("Failed to restart server: %v", err)
-			bot.Send(tgbotapi.NewMessage(chatID, errStr))
-			logger.Printf(errStr)
+			logger.Printf("Failed to restart server: %v", err)
+			bot.Send(tgbotapi.NewMessage(chatID, "Failed to restart server. See logs for details."))
 		}
 
 	case "restart_service":
@@ -285,10 +349,16 @@ func handleCommand(bot *tgbotapi.BotAPI, msg *tgbotapi.Message, logger *Telegram
 			return
 		}
 
+		if !serviceNameRegex.MatchString(serviceName) {
+			bot.Send(tgbotapi.NewMessage(chatID, "Invalid service name format."))
+			logger.Printf("Invalid service name attempt: %s", serviceName)
+			return
+		}
+
 		logger.Printf("Restarting service %s requested by chat %d", serviceName, chatID)
 
 		if len(cfg.ControlledServices) > 0 && !slices.Contains(cfg.ControlledServices, serviceName) {
-			bot.Send(tgbotapi.NewMessage(chatID, fmt.Sprintf("Service %s is not in the controlled list.", serviceName)))
+			bot.Send(tgbotapi.NewMessage(chatID, "Service is not in the controlled list."))
 			logger.Printf("Unauthorized attempt to restart service: %s", serviceName)
 			return
 		}
@@ -296,9 +366,8 @@ func handleCommand(bot *tgbotapi.BotAPI, msg *tgbotapi.Message, logger *Telegram
 		bot.Send(tgbotapi.NewMessage(chatID, fmt.Sprintf("Restarting service: %s...", serviceName)))
 		cmd := exec.Command("sudo", "systemctl", "restart", serviceName)
 		if err := cmd.Run(); err != nil {
-			errStr := fmt.Sprintf("Failed to restart service %s: %v", serviceName, err)
-			bot.Send(tgbotapi.NewMessage(chatID, errStr))
-			logger.Printf(errStr)
+			logger.Printf("Failed to restart service %s: %v", serviceName, err)
+			bot.Send(tgbotapi.NewMessage(chatID, "Failed to restart service. See logs for details."))
 		} else {
 			successStr := fmt.Sprintf("Service %s restarted successfully.", serviceName)
 			bot.Send(tgbotapi.NewMessage(chatID, successStr))
