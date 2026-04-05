@@ -5,12 +5,12 @@ After=network.target
 [Service]
 Type=simple
 User=root
-WorkingDirectory=/opt/control_my_server_bot
-ExecStart=/opt/control_my_server_bot/control_my_server_bot
+WorkingDirectory=/etc/control-my-server-bot
+ExecStart=/usr/bin/control-my-server-bot
 Restart=always
 RestartSec=5
-# Optional: Load environment variables from .env if godotenv is not enough
-# EnvironmentFile=/opt/control_my_server_bot/.env
+# Load environment variables from /etc/control-my-server-bot/.env
+# godotenv will automatically load it from the WorkingDirectory
 
 [Install]
 WantedBy=multi-user.target
