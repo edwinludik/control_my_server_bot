@@ -1,0 +1,16 @@
+[Unit]
+Description=Control My Server Telegram Bot
+After=network.target
+
+[Service]
+Type=simple
+User=root
+WorkingDirectory=/opt/control_my_server_bot
+ExecStart=/opt/control_my_server_bot/control_my_server_bot
+Restart=always
+RestartSec=5
+# Optional: Load environment variables from .env if godotenv is not enough
+# EnvironmentFile=/opt/control_my_server_bot/.env
+
+[Install]
+WantedBy=multi-user.target
