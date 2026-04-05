@@ -1,2 +1,4 @@
 /.env
 /.user_ids
+/.user_ids-shm
+/.user_ids-wal
