@@ -4,11 +4,14 @@ After=network.target
 
 [Service]
 Type=simple
-User=root
+User=cmsbot
+Group=cmsbot
 WorkingDirectory=/opt/control_my_server_bot
 ExecStart=/opt/control_my_server_bot/control_my_server_bot
 Restart=always
 RestartSec=5
+# Capability to restart services and reboot is handled via Polkit/Sudoers
+# permissions for the cmsbot user, rather than running the service as root.
 
 # Elevated scheduling and priority to remain responsive under heavy load
 Nice=-10

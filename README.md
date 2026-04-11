@@ -131,19 +131,39 @@ Each Pull Request and push to `main` triggers a GitHub Action that:
 This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
 
 ## Security and Responsiveness Note
-The bot uses `sudo` (implicitly via `User=root`) for `reboot` and `systemctl restart`. In the provided template, it runs as `root`.
+The bot runs as a dedicated non-root user (`cmsbot`) for enhanced security. It uses Polkit (or a sudoers rule fallback) to allow restarting services and rebooting the server without requiring a password or `root` privileges for the bot process itself.
 
 ### Hardening Measures
+- **Dedicated User**: The bot runs as `cmsbot` with restricted access.
+- **Polkit/Sudoers Control**: Only specific actions (`systemctl restart`, `reboot`) are permitted for the `cmsbot` user.
 - **Rate Limiting**: Commands are rate-limited to 5 per minute per user to prevent spam.
 - **Service Name Validation**: Input for `/restart_service` is validated against a strict regex (`^[a-zA-Z0-9\-_.]+$`) to prevent command injection.
-- **File Permissions**: The bot automatically attempts to set restricted permissions (`0600`) on the `.env` and SQLite database files.
+- **File Permissions**: The bot automatically attempts to set restricted permissions (`0600`) on the `.env` and SQLite database files, and the installation directory is restricted to the `cmsbot` user.
 - **Error Sanitization**: System-level error details are logged to the private log channel but not sent directly to the user who triggered the command.
 
-### Recommended Sudo Configuration
-If you don't want to run the bot as `root`, you can run it as a normal user and configure `sudo` to allow only specific commands without a password. Add the following to `/etc/sudoers.d/control-bot`:
+### Manual Sudo/Polkit Configuration (if not using packages)
+If you are installing manually and don't want to run the bot as `root`, you should:
+1. Create a dedicated user (e.g., `cmsbot`).
+2. Give the user ownership of the bot's directory.
+3. Configure Polkit by adding a rule in `/etc/polkit-1/rules.d/10-cmsbot.rules`:
+   ```javascript
+   polkit.addRule(function(action, subject) {
+       if (subject.user == "cmsbot") {
+           if (action.id == "org.freedesktop.systemd1.manage-units" ||
+               action.id == "org.freedesktop.login1.reboot" ||
+               action.id == "org.freedesktop.login1.reboot-multiple-sessions") {
+               return polkit.Result.YES;
+           }
+       }
+   });
+   ```
+   *Note: This allows the user to restart ANY service. You may want to further restrict this if necessary.*
+
+Alternatively, use `sudoers` fallback (not recommended if Polkit is available):
+Add the following to `/etc/sudoers.d/control-bot`:
 ```sudoers
-control-bot ALL=(ALL) NOPASSWD: /usr/bin/systemctl restart *, /usr/sbin/reboot
+cmsbot ALL=(ALL) NOPASSWD: /usr/bin/systemctl restart *, /usr/sbin/reboot
 ```
-*(Replace `control-bot` with the actual user running the bot and ensure paths match your system).*
+*(Ensure the bot code calls `reboot` or `systemctl` directly, and the user has permissions).*
 
 The bot is also configured with high scheduling and I/O priority (`Nice=-10`, `CPUSchedulingPolicy=rr`, `IOSchedulingClass=realtime`) and protected from OOM-killing (`OOMScoreAdjust=-1000`). This ensures it remains responsive even when the server is under extreme load.

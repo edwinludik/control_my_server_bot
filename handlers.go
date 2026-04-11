@@ -73,7 +73,7 @@ func handleCommand(bot *tgbotapi.BotAPI, msg *tgbotapi.Message, logger *Telegram
 		if _, err := bot.Send(tgbotapi.NewMessage(chatID, "🔄 Restarting server...")); err != nil {
 			log.Printf("Failed to send restarting server message: %v", err)
 		}
-		cmd := exec.Command("sudo", "reboot")
+		cmd := exec.Command("reboot")
 		if err := cmd.Run(); err != nil {
 			logger.Printf("❌ Failed to restart server: %v", err)
 			if _, err := bot.Send(tgbotapi.NewMessage(chatID, "❌ Failed to restart server. See logs for details.")); err != nil {
@@ -117,7 +117,8 @@ func handleCommand(bot *tgbotapi.BotAPI, msg *tgbotapi.Message, logger *Telegram
 		if _, err := bot.Send(tgbotapi.NewMessage(chatID, fmt.Sprintf("🔄 Restarting service: %s...", serviceName))); err != nil {
 			log.Printf("Failed to send restarting service message: %v", err)
 		}
-		cmd := exec.Command("sudo", "systemctl", "restart", serviceName)
+		// #nosec G204
+		cmd := exec.Command("systemctl", "restart", serviceName)
 		if err := cmd.Run(); err != nil {
 			logger.Printf("❌ Failed to restart service %s: %v", serviceName, err)
 			if _, err := bot.Send(tgbotapi.NewMessage(chatID, "❌ Failed to restart service. See logs for details.")); err != nil {
