@@ -3,6 +3,8 @@ package main
 import (
 	"fmt"
 	"log"
+	"os"
+	"strconv"
 	"strings"
 	"time"
 
@@ -52,12 +54,13 @@ func main() {
 		}
 	}
 
-	u := tgbotapi.NewUpdate(0)
+	u := tgbotapi.NewUpdate(loadOffset())
 	u.Timeout = 60
 
 	updates := bot.GetUpdatesChan(u)
 
 	for update := range updates {
+		saveOffset(update.UpdateID + 1)
 		func() {
 			defer func() {
 				if r := recover(); r != nil {
@@ -104,5 +107,30 @@ func main() {
 
 			handleCommand(bot, update.Message, logger, cfg, userStore)
 		}()
+	}
+}
+
+const offsetFile = ".session_offset"
+
+func loadOffset() int {
+	data, err := os.ReadFile(offsetFile)
+	if err != nil {
+		if !os.IsNotExist(err) {
+			log.Printf("Failed to read offset file: %v", err)
+		}
+		return 0
+	}
+	offset, err := strconv.Atoi(strings.TrimSpace(string(data)))
+	if err != nil {
+		log.Printf("Failed to parse offset from file: %v", err)
+		return 0
+	}
+	return offset
+}
+
+func saveOffset(offset int) {
+	err := os.WriteFile(offsetFile, []byte(strconv.Itoa(offset)), 0644)
+	if err != nil {
+		log.Printf("Failed to save offset to file: %v", err)
 	}
 }
