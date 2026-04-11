@@ -56,33 +56,50 @@ The bot is configured via environment variables. You need to provide these in a 
 ## Installation Options
 
 ### 1. Manual Installation
-1. **Clone the repository**:
+1. **Create a dedicated system user**:
+   ```bash
+   sudo useradd --system --shell /bin/false --home-dir /opt/control_my_server_bot control_my_server_bot_user
+   ```
+2. **Clone the repository and build the bot**:
    ```bash
    git clone https://github.com/edwinludik/control_my_server_bot.git
    cd control_my_server_bot
-   ```
-2. **Configure environment variables**:
-   ```bash
-   cp .env.example .env
-   # Edit .env with your credentials
-   nano .env
-   ```
-3. **Build the bot**:
-   ```bash
    go build -o control_my_server_bot ./src
    ```
-4. **Install as a systemd service**:
+3. **Set up the installation directory**:
+   ```bash
+   sudo mkdir -p /opt/control_my_server_bot
+   sudo cp control_my_server_bot /opt/control_my_server_bot/
+   sudo cp .env.example /opt/control_my_server_bot/.env
+   # Edit /opt/control_my_server_bot/.env with your credentials
+   sudo nano /opt/control_my_server_bot/.env
+   ```
+4. **Assign permissions**:
+   ```bash
+   sudo chown -R control_my_server_bot_user:control_my_server_bot_user /opt/control_my_server_bot
+   sudo chmod 750 /opt/control_my_server_bot
+   sudo chmod 600 /opt/control_my_server_bot/.env
+   ```
+5. **Install as a systemd service**:
    - Copy the provided `control_my_server_bot.service` to `/etc/systemd/system/`:
      ```bash
      sudo cp control_my_server_bot.service /etc/systemd/system/
      ```
-   - Update the `WorkingDirectory` and `ExecStart` in `/etc/systemd/system/control_my_server_bot.service` if you installed the bot in a different location.
+   - Update the `User`, `Group`, `WorkingDirectory` and `ExecStart` in `/etc/systemd/system/control_my_server_bot.service` if they differ. For example, ensure it matches:
+     ```ini
+     User=control_my_server_bot_user
+     Group=control_my_server_bot_user
+     WorkingDirectory=/opt/control_my_server_bot
+     ExecStart=/opt/control_my_server_bot/control_my_server_bot
+     ```
    - Reload systemd, enable and start the service:
      ```bash
      sudo systemctl daemon-reload
      sudo systemctl enable control_my_server_bot.service
      sudo systemctl start control_my_server_bot.service
      ```
+6. **Configure Polkit/Sudoers**:
+   Follow the [Security and Responsiveness Note](#security-and-responsiveness-note) section below to allow the bot to manage services.
 
 ### 2. Linux Packages (.deb, .rpm, .pkg.tar.zst)
 For a cleaner installation, you can build and install a package for your specific distribution.
