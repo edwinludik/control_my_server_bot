@@ -66,6 +66,13 @@ jobs:
           path: "*.pkg.tar.zst"
           if-no-files-found: error
 
+      - name: Upload Source Zip
+        uses: actions/upload-artifact@v7
+        with:
+          name: source-zip
+          path: "*.zip"
+          if-no-files-found: error
+
   release:
     name: Release
     runs-on: ubuntu-latest
@@ -86,4 +93,5 @@ jobs:
             *.deb
             *.rpm
             *.pkg.tar.zst
+            *.zip
           generate_release_notes: true
