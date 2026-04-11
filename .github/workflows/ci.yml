@@ -25,6 +25,9 @@ jobs:
       - name: Build
         run: go build -v ./...
 
+      - name: Run Tests
+        run: go test -v ./...
+
       - name: Run govulncheck
         run: go run golang.org/x/vuln/cmd/govulncheck@latest ./...
 

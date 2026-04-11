@@ -21,6 +21,10 @@ package-arch: build-linux
 .PHONY: packages
 packages: package-deb package-rpm package-arch
 
+.PHONY: test
+test:
+	go test -v ./src/...
+
 .PHONY: clean
 clean:
 	rm -f $(BINARY_NAME)

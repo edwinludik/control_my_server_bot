@@ -15,8 +15,18 @@ type UserStore struct {
 }
 
 func NewUserStore() (store *UserStore, err error) {
+	return NewUserStoreWithDB(dbName)
+}
+
+func NewUserStoreWithDB(path string) (store *UserStore, err error) {
 	// Use DSN with WAL mode and busy timeout for better SQLite performance and reliability
-	dsn := fmt.Sprintf("file:%s?_pragma=journal_mode(WAL)&_pragma=busy_timeout(5000)", dbName)
+	var dsn string
+	if path == ":memory:" {
+		dsn = path
+	} else {
+		dsn = fmt.Sprintf("file:%s?_pragma=journal_mode(WAL)&_pragma=busy_timeout(5000)", path)
+	}
+
 	db, err := sql.Open("sqlite", dsn)
 	if err != nil {
 		return nil, fmt.Errorf("open database: %w", err)
@@ -34,9 +44,13 @@ func NewUserStore() (store *UserStore, err error) {
 		return nil, fmt.Errorf("ping database: %w", err)
 	}
 
-	// Ensure the database file has restricted permissions
-	if err := os.Chmod(dbName, 0600); err != nil {
-		return nil, fmt.Errorf("chmod database: %w", err)
+	// Ensure the database file has restricted permissions if it's a file
+	if path != ":memory:" {
+		if _, err := os.Stat(path); err == nil {
+			if err := os.Chmod(path, 0600); err != nil {
+				return nil, fmt.Errorf("chmod database: %w", err)
+			}
+		}
 	}
 
 	_, err = db.Exec(`CREATE TABLE IF NOT EXISTS users (
