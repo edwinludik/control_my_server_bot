@@ -4,7 +4,7 @@ ARCH=amd64
 
 .PHONY: build-linux
 build-linux:
-	GOOS=linux GOARCH=$(ARCH) go build -o $(BINARY_NAME) .
+	GOOS=linux GOARCH=$(ARCH) go build -o $(BINARY_NAME) ./src
 
 .PHONY: package-deb
 package-deb: build-linux

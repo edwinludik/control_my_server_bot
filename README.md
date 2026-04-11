@@ -69,7 +69,7 @@ The bot is configured via environment variables. You can provide these in a `.en
    ```
 3. **Build the bot**:
    ```bash
-   go build -o control_my_server_bot main.go
+   go build -o control_my_server_bot ./src
    ```
 4. **Install as a systemd service**:
    - Copy the provided `control_my_server_bot.service` to `/etc/systemd/system/`:
