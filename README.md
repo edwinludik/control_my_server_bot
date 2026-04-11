@@ -39,7 +39,7 @@ systemctl enable --now control_my_server_bot
 - Linux server with `systemd` (for running).
 - A Telegram bot token (from @BotFather).
 - Your Telegram user ID (owner).
-- A Telegram channel ID for logs.
+- A Telegram channel ID for logs (create one if needed).
 - Go 1.26 or higher - optional: if you want to build from source.
 
 ## Configuration
