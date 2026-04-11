@@ -6,10 +6,6 @@ on:
     tags: ['v*']
   pull_request:
 
-concurrency:
-  group: ${{ github.workflow }}-${{ github.ref_name }}-${{ github.event_name }}
-  cancel-in-progress: true
-
 jobs:
   build:
     name: Build & Release
