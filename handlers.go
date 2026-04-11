@@ -128,7 +128,7 @@ func handleCommand(bot *tgbotapi.BotAPI, msg *tgbotapi.Message, logger *Telegram
 			if _, err := bot.Send(tgbotapi.NewMessage(chatID, successStr)); err != nil {
 				log.Printf("Failed to send success message: %v", err)
 			}
-			logger.Printf(successStr)
+			logger.Printf("%s", successStr)
 		}
 
 	case "get_services":
