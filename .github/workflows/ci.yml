@@ -46,11 +46,23 @@ jobs:
       - name: Build packages
         run: make packages
 
-      - name: Upload Artifacts
+      - name: Upload Debian package
         uses: actions/upload-artifact@v5
         with:
-          name: packages
-          path: |
-            *.deb
-            *.rpm
-            *.pkg.tar.zst
+          name: deb-package
+          path: "*.deb"
+          if-no-files-found: error
+
+      - name: Upload RPM package
+        uses: actions/upload-artifact@v5
+        with:
+          name: rpm-package
+          path: "*.rpm"
+          if-no-files-found: error
+
+      - name: Upload Arch package
+        uses: actions/upload-artifact@v5
+        with:
+          name: arch-package
+          path: "*.pkg.tar.zst"
+          if-no-files-found: error
