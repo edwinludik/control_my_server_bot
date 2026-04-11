@@ -28,13 +28,10 @@ jobs:
       - name: Run govulncheck
         run: go run golang.org/x/vuln/cmd/govulncheck@latest ./...
 
-      - name: Install golangci-lint
-        run: |
-          curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s -- -b $(go env GOPATH)/bin v1.55.2
-
       - name: Run golangci-lint
-        run: |
-          golangci-lint run --timeout 5m
+        uses: golangci/golangci-lint-action@v9
+        with:
+          version: latest
 
       - name: Install gosec
         run: go install github.com/securego/gosec/v2/cmd/gosec@latest
