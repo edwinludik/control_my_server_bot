@@ -18,11 +18,15 @@ contents:
   - src: control_my_server_bot.service
     dst: /usr/lib/systemd/system/control_my_server_bot.service
     # This path is standard for Arch and RPM
-    packager: [archlinux, rpm]
+    packager: archlinux
+  - src: control_my_server_bot.service
+    dst: /usr/lib/systemd/system/control_my_server_bot.service
+    # This path is standard for Arch and RPM
+    packager: rpm
   - src: control_my_server_bot.service
     dst: /lib/systemd/system/control_my_server_bot.service
     # This path is standard for Debian
-    packager: [deb]
+    packager: deb
   - src: .env.example
     dst: /opt/control_my_server_bot/.env
     type: config
