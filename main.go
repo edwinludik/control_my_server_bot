@@ -25,8 +25,9 @@ func main() {
 	if err != nil {
 		log.Fatalf("failed to initialize user store: %v", err)
 	}
-	//goland:noinspection GoUnhandledErrorResult
-	defer userStore.Close()
+	defer func() {
+		_ = userStore.Close()
+	}()
 
 	bot, err := tgbotapi.NewBotAPI(cfg.Token)
 	if err != nil {
