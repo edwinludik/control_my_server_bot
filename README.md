@@ -2,6 +2,21 @@
 
 A Telegram bot to control your Linux server remotely.
 
+## Installation
+
+Download the latest version from the [Releases](https://github.com/edwinludik/control_my_server_bot/releases) page.
+
+We provide packages for:
+- Debian/Ubuntu (`.deb`)
+- RHEL/CentOS/Fedora (`.rpm`)
+- Arch Linux (`.pkg.tar.zst`)
+
+### Systemd Integration
+The packages include a systemd service file. After installation, you can:
+```bash
+systemctl enable --now control_my_server_bot
+```
+
 ## Features
 - `/start` or `/help`: Show help and commands.
 - `/ping`: Return "Pong!".
