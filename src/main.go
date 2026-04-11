@@ -129,7 +129,7 @@ func loadOffset() int {
 }
 
 func saveOffset(offset int) {
-	err := os.WriteFile(offsetFile, []byte(strconv.Itoa(offset)), 0644)
+	err := os.WriteFile(offsetFile, []byte(strconv.Itoa(offset)), 0600)
 	if err != nil {
 		log.Printf("Failed to save offset to file: %v", err)
 	}
