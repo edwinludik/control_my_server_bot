@@ -12,7 +12,6 @@ type Config struct {
 	OwnerID            int64
 	LogChannelID       int64
 	ControlledServices []string
-	DBPath             string
 }
 
 func loadConfig() (*Config, error) {
@@ -53,11 +52,6 @@ func loadConfig() (*Config, error) {
 		}
 	}
 
-	dbPath := os.Getenv("DATABASE_PATH")
-	if dbPath == "" {
-		dbPath = ".user_ids"
-	}
-
 	// Ensure .env has restricted permissions if it exists
 	if _, err := os.Stat(".env"); err == nil {
 		_ = os.Chmod(".env", 0600)
@@ -68,6 +62,5 @@ func loadConfig() (*Config, error) {
 		OwnerID:            ownerID,
 		LogChannelID:       logChannelID,
 		ControlledServices: controlledServices,
-		DBPath:             dbPath,
 	}, nil
 }

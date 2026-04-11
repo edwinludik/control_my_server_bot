@@ -21,7 +21,7 @@ func main() {
 		log.Fatalf("failed to load config: %v", err)
 	}
 
-	userStore, err := NewUserStore(cfg.DBPath)
+	userStore, err := NewUserStore()
 	if err != nil {
 		log.Fatalf("failed to initialize user store: %v", err)
 	}

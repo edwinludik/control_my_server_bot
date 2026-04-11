@@ -8,13 +8,15 @@ import (
 	_ "modernc.org/sqlite"
 )
 
+const dbName = ".user_ids.db"
+
 type UserStore struct {
 	db *sql.DB
 }
 
-func NewUserStore(dbPath string) (store *UserStore, err error) {
+func NewUserStore() (store *UserStore, err error) {
 	// Use DSN with WAL mode and busy timeout for better SQLite performance and reliability
-	dsn := fmt.Sprintf("file:%s?_pragma=journal_mode(WAL)&_pragma=busy_timeout(5000)", dbPath)
+	dsn := fmt.Sprintf("file:%s?_pragma=journal_mode(WAL)&_pragma=busy_timeout(5000)", dbName)
 	db, err := sql.Open("sqlite", dsn)
 	if err != nil {
 		return nil, fmt.Errorf("open database: %w", err)
@@ -33,7 +35,7 @@ func NewUserStore(dbPath string) (store *UserStore, err error) {
 	}
 
 	// Ensure the database file has restricted permissions
-	_ = os.Chmod(dbPath, 0600)
+	_ = os.Chmod(dbName, 0600)
 
 	_, err = db.Exec(`CREATE TABLE IF NOT EXISTS users (
 		id INTEGER PRIMARY KEY

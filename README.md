@@ -52,7 +52,6 @@ The bot is configured via environment variables. You can provide these in a `.en
 | `TELEGRAM_OWNER_ID` | **Required**. Your Telegram User ID. | |
 | `TELEGRAM_LOG_CHANNEL_ID` | **Required**. Telegram Channel ID for logs. | |
 | `CONTROLLED_SERVICES` | Comma-separated list of services the bot can control. | (All available) |
-| `DATABASE_PATH` | Path to the SQLite database file. | `.user_ids` |
 
 ## Installation Options
 
