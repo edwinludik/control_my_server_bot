@@ -1,6 +1,6 @@
 # Control My Server Telegram Bot
 
-A Telegram bot to control your Linux server remotely via `systemctl` and `reboot`.
+A Telegram bot to control your Linux server remotely.
 
 ## Features
 - `/start` or `/help`: Show help and commands.
@@ -12,7 +12,7 @@ A Telegram bot to control your Linux server remotely via `systemctl` and `reboot
 - `/get_services`: List available services (all running or from a whitelist).
 - `/restart_service <name>`: Restart a specific service.
 - `/restart_server`: Reboot the server.
-- **Multi-user Support**: Add and manage additional users via SQLite.
+- **Multi-user Support**: Add and manage additional users.
   - `/add_user <id>`: Grant full permissions to a user (Owner only).
   - `/delete_user <id>`: Remove a user (Owner only).
   - `/get_users`: List all additional authorized users (Owner only).
@@ -21,11 +21,11 @@ A Telegram bot to control your Linux server remotely via `systemctl` and `reboot
 - **High Availability**: Configured to run with elevated privileges and scheduling priority to remain responsive even when the server is under extreme load.
 
 ## Prerequisites
-- Go 1.26 or higher (for building).
 - Linux server with `systemd` (for running).
 - A Telegram bot token (from @BotFather).
 - Your Telegram user ID (owner).
 - A Telegram channel ID for logs.
+- Go 1.26 or higher - optional: if you want to build from source.
 
 ## Configuration
 
