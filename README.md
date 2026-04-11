@@ -44,7 +44,7 @@ systemctl enable --now control_my_server_bot
 
 ## Configuration
 
-The bot is configured via environment variables. You can provide these in a `.env` file in the working directory.
+The bot is configured via environment variables. You need to provide these in a `.env` file in the working directory.
 
 | Variable | Description | Default |
 |----------|-------------|---------|
