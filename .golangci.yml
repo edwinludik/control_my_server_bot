@@ -9,6 +9,7 @@ linters:
 
 run:
   tests: false
+  version: 1
 
 issues:
   exclude-rules:
