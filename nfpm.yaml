@@ -8,7 +8,7 @@ maintainer: Edwin Ludik <edwin.ludik@gmail.com>
 description: |
   A Telegram bot to control your Linux server.
   Allows restarting the server, services, and checking status.
-vendor: JetBrains
+vendor: Edwin Ludik <edwin.ludik@gmail.com>
 homepage: https://github.com/edwinludik/control_my_server_bot
 license: MIT
 
