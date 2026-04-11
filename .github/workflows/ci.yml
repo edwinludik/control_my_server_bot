@@ -2,9 +2,6 @@ name: CI
 
 on:
   push:
-    branches: [ main ]
-    tags:
-      - 'v*'
   pull_request:
     branches: [ main ]
 
@@ -85,6 +82,7 @@ jobs:
         uses: actions/download-artifact@v8
         with:
           merge-multiple: true
+        if: github.ref_type == 'tag'
 
       - name: Create Release
         uses: softprops/action-gh-release@v2
@@ -95,3 +93,4 @@ jobs:
             *.pkg.tar.zst
             *.zip
           generate_release_notes: true
+        if: github.ref_type == 'tag'
