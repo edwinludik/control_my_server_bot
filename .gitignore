@@ -1,6 +1,4 @@
 /.env
-/.user_ids
-/.user_ids-shm
-/.user_ids-wal
+/.user_ids*
 /bot
 /control_my_server_bot
