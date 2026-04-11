@@ -3,7 +3,7 @@ set -e
 
 # Standard systemd service name
 SERVICE_NAME="control_my_server_bot.service"
-USER_NAME="cmsbot"
+USER_NAME="control_my_server_bot_user"
 INSTALL_DIR="/opt/control_my_server_bot"
 
 # Create dedicated user if it doesn't exist
