@@ -35,7 +35,9 @@ func NewUserStore() (store *UserStore, err error) {
 	}
 
 	// Ensure the database file has restricted permissions
-	_ = os.Chmod(dbName, 0600)
+	if err := os.Chmod(dbName, 0600); err != nil {
+		return nil, fmt.Errorf("chmod database: %w", err)
+	}
 
 	_, err = db.Exec(`CREATE TABLE IF NOT EXISTS users (
 		id INTEGER PRIMARY KEY
@@ -68,8 +70,9 @@ func (s *UserStore) ListUsers(ownerID int64) ([]string, error) {
 	if err != nil {
 		return nil, err
 	}
-	//goland:noinspection GoUnhandledErrorResult
-	defer rows.Close()
+	defer func() {
+		_ = rows.Close()
+	}()
 
 	var result []string
 	result = append(result, fmt.Sprintf("User: %d (Owner, cannot be deleted)", ownerID))
