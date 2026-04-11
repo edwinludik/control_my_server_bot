@@ -15,7 +15,11 @@ import (
 func main() {
 	// Load .env file from the current directory if it exists
 	if err := godotenv.Load(".env"); err != nil {
-		log.Println("No .env file found in current directory, relying on environment variables")
+		if !os.IsNotExist(err) {
+			log.Printf("Failed to load .env file: %v", err)
+		} else {
+			log.Println("No .env file found in current directory, relying on environment variables")
+		}
 	}
 
 	cfg, err := loadConfig()
@@ -46,12 +50,10 @@ func main() {
 	services, err := getAvailableServices(cfg)
 	if err != nil {
 		logger.Printf("⚠️ Failed to get available services on start: %v", err)
+	} else if len(services) > 0 {
+		logger.Printf("📋 Available Services on startup:\n• %s", strings.Join(services, "\n• "))
 	} else {
-		if len(services) > 0 {
-			logger.Printf("📋 Available Services on startup:\n• %s", strings.Join(services, "\n• "))
-		} else {
-			logger.Printf("ℹ️ No available services found on startup.")
-		}
+		logger.Printf("ℹ️ No available services found on startup.")
 	}
 
 	u := tgbotapi.NewUpdate(loadOffset())

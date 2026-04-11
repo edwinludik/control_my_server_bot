@@ -54,7 +54,9 @@ func loadConfig() (*Config, error) {
 
 	// Ensure .env has restricted permissions if it exists
 	if _, err := os.Stat(".env"); err == nil {
-		_ = os.Chmod(".env", 0600)
+		if err := os.Chmod(".env", 0600); err != nil {
+			fmt.Printf("Warning: failed to chmod .env file: %v\n", err)
+		}
 	}
 
 	return &Config{

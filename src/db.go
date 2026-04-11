@@ -48,7 +48,7 @@ func NewUserStoreWithDB(path string) (store *UserStore, err error) {
 	if path != ":memory:" {
 		if _, err := os.Stat(path); err == nil {
 			if err := os.Chmod(path, 0600); err != nil {
-				return nil, fmt.Errorf("chmod database: %w", err)
+				fmt.Printf("Warning: failed to chmod database file: %v\n", err)
 			}
 		}
 	}

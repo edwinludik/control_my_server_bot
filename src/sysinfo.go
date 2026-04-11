@@ -12,9 +12,8 @@ func getCPUUsageInfo() (string, error) {
 		// Fallback for macOS: top -l 1 -n 0 | grep "CPU usage"
 		out, err = exec.Command("sh", "-c", "top -l 1 -n 0 | grep \"CPU usage\"").Output()
 		if err != nil {
-			return "", err
+			return "CPU usage info not available", nil
 		}
-		return strings.TrimSpace(string(out)), nil
 	}
 	return strings.TrimSpace(string(out)), nil
 }
@@ -26,7 +25,7 @@ func getRAMUsageInfo() (string, error) {
 		// Fallback for macOS if free -h is not available
 		out, err = exec.Command("top", "-l", "1", "-s", "0", "-n", "0").Output()
 		if err != nil {
-			return "", err
+			return "RAM usage info not available", nil
 		}
 		// Basic extraction for macOS top output
 		lines := strings.Split(string(out), "\n")
@@ -35,7 +34,7 @@ func getRAMUsageInfo() (string, error) {
 				return line, nil
 			}
 		}
-		return string(out), nil
+		return "RAM usage info not available", nil
 	}
 	return strings.TrimSpace(string(out)), nil
 }
@@ -44,7 +43,7 @@ func getDiskSpaceInfo() (string, error) {
 	// Using df -h to get human-readable disk space info on all mounted filesystems
 	out, err := exec.Command("df", "-h").Output()
 	if err != nil {
-		return "", err
+		return "Disk space info not available", nil
 	}
 
 	lines := strings.Split(strings.TrimSpace(string(out)), "\n")

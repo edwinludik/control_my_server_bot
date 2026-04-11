@@ -339,19 +339,19 @@ func getAvailableServices(cfg *Config) ([]string, error) {
 	}
 
 	// List all services if no specific list is provided
-	out, err := exec.Command("systemctl", "list-units", "--type=service", "--state=running", "--no-legend").Output()
+	out, err := exec.Command("systemctl", "list-units", "--type=service", "--state=running", "--no-legend", "--no-pager").Output()
 	if err != nil {
 		return nil, err
 	}
 
+	lines := strings.Split(strings.TrimSpace(string(out)), "\n")
 	var services []string
-	lines := strings.Split(string(out), "\n")
 	for _, line := range lines {
 		fields := strings.Fields(line)
 		if len(fields) > 0 {
 			// systemctl list-units output: UNIT LOAD ACTIVE SUB DESCRIPTION
-			// Fields[0] is the service name
-			services = append(services, fields[0])
+			// Fields[0] is the service name like 'nginx.service'
+			services = append(services, strings.TrimSuffix(fields[0], ".service"))
 		}
 	}
 	return services, nil

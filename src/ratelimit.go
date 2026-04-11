@@ -1,6 +1,7 @@
 package main
 
 import (
+	"slices"
 	"sync"
 	"time"
 )
@@ -28,15 +29,12 @@ func (rl *RateLimiter) Allow(userID int64) (bool, time.Duration) {
 	cutoff := now.Add(-rl.interval)
 
 	// Filter out old timestamps
-	var current []time.Time
-	for _, t := range rl.counts[userID] {
-		if t.After(cutoff) {
-			current = append(current, t)
-		}
-	}
+	rl.counts[userID] = slices.DeleteFunc(rl.counts[userID], func(t time.Time) bool {
+		return !t.After(cutoff)
+	})
+	current := rl.counts[userID]
 
 	if len(current) >= rl.limit {
-		rl.counts[userID] = current
 		// The cooldown ends when the oldest timestamp in 'current' falls out of the window
 		cooldown := time.Until(current[0].Add(rl.interval))
 		if cooldown < 0 {
