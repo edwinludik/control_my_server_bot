@@ -18,12 +18,8 @@ package-rpm: build-linux
 package-arch: build-linux
 	nfpm pkg --packager archlinux --target .
 
-.PHONY: package-zip
-package-zip:
-	zip -r $(BINARY_NAME)-$(VERSION)-source.zip . -x "$(BINARY_NAME)" "*.deb" "*.rpm" "*.pkg.tar.zst" ".git/*" ".idea/*" ".junie/*" "go.sum" ".env" ".user_ids*" ".user_ids.db*"
-
 .PHONY: packages
-packages: package-deb package-rpm package-arch package-zip
+packages: package-deb package-rpm package-arch
 
 .PHONY: test
 test:
@@ -32,4 +28,4 @@ test:
 .PHONY: clean
 clean:
 	rm -f $(BINARY_NAME)
-	rm -f *.deb *.rpm *.pkg.tar.zst *.zip
+	rm -f *.deb *.rpm *.pkg.tar.zst
