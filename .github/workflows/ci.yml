@@ -3,6 +3,7 @@ name: CI
 on:
   push:
     branches: ['*']
+    tags: ['v*']
   pull_request:
 
 jobs:
@@ -67,7 +68,6 @@ jobs:
           name: arch-package
           path: "*.pkg.tar.zst"
           if-no-files-found: error
-
 
   release:
     name: Release
