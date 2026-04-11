@@ -50,5 +50,5 @@ fi
 
 echo "Control My Server Bot installed and configured as a service."
 echo "Running as user: $USER_NAME"
-echo "Please edit /opt/control_my_server_bot/.env with your Telegram credentials."
+echo "Please create/edit: /opt/control_my_server_bot/.env with your Telegram credentials."
 echo "Then restart the service: sudo systemctl restart $SERVICE_NAME"
