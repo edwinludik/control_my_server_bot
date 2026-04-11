@@ -1,5 +1,5 @@
 BINARY_NAME=control_my_server_bot
-VERSION=1.0.0
+VERSION=1.0.1
 ARCH=amd64
 
 .PHONY: build-linux
