@@ -17,11 +17,11 @@ echo "Setting permissions for $INSTALL_DIR"
 chown -R "$USER_NAME:$USER_NAME" "$INSTALL_DIR"
 chmod 750 "$INSTALL_DIR"
 
-# Polkit rule to allow cmsbot to restart services and reboot
+# Polkit rule to allow control_my_server_bot_user to restart services and reboot
 POLKIT_RULE_DIR="/etc/polkit-1/rules.d"
 if [ -d "$POLKIT_RULE_DIR" ]; then
     echo "Installing Polkit rule for $USER_NAME"
-    cat > "$POLKIT_RULE_DIR/10-cmsbot.rules" <<EOF
+    cat > "$POLKIT_RULE_DIR/10-control_my_server_bot_user.rules" <<EOF
 polkit.addRule(function(action, subject) {
     if (subject.user == "$USER_NAME") {
         if (action.id == "org.freedesktop.systemd1.manage-units" ||

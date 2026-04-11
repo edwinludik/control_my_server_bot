@@ -131,24 +131,24 @@ Each Pull Request and push to `main` triggers a GitHub Action that:
 This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
 
 ## Security and Responsiveness Note
-The bot runs as a dedicated non-root user (`cmsbot`) for enhanced security. It uses Polkit (or a sudoers rule fallback) to allow restarting services and rebooting the server without requiring a password or `root` privileges for the bot process itself.
+The bot runs as a dedicated non-root user (`control_my_server_bot_user`) for enhanced security. It uses Polkit (or a sudoers rule fallback) to allow restarting services and rebooting the server without requiring a password or `root` privileges for the bot process itself.
 
 ### Hardening Measures
-- **Dedicated User**: The bot runs as `cmsbot` with restricted access.
-- **Polkit/Sudoers Control**: Only specific actions (`systemctl restart`, `reboot`) are permitted for the `cmsbot` user.
+- **Dedicated User**: The bot runs as `control_my_server_bot_user` with restricted access.
+- **Polkit/Sudoers Control**: Only specific actions (`systemctl restart`, `reboot`) are permitted for the `control_my_server_bot_user` user.
 - **Rate Limiting**: Commands are rate-limited to 5 per minute per user to prevent spam.
 - **Service Name Validation**: Input for `/restart_service` is validated against a strict regex (`^[a-zA-Z0-9\-_.]+$`) to prevent command injection.
-- **File Permissions**: The bot automatically attempts to set restricted permissions (`0600`) on the `.env` and SQLite database files, and the installation directory is restricted to the `cmsbot` user.
+- **File Permissions**: The bot automatically attempts to set restricted permissions (`0600`) on the `.env` and SQLite database files, and the installation directory is restricted to the `control_my_server_bot_user` user.
 - **Error Sanitization**: System-level error details are logged to the private log channel but not sent directly to the user who triggered the command.
 
 ### Manual Sudo/Polkit Configuration (if not using packages)
 If you are installing manually and don't want to run the bot as `root`, you should:
-1. Create a dedicated user (e.g., `cmsbot`).
+1. Create a dedicated user (e.g., `control_my_server_bot_user`).
 2. Give the user ownership of the bot's directory.
-3. Configure Polkit by adding a rule in `/etc/polkit-1/rules.d/10-cmsbot.rules`:
+3. Configure Polkit by adding a rule in `/etc/polkit-1/rules.d/10-control_my_server_bot_user.rules`:
    ```javascript
    polkit.addRule(function(action, subject) {
-       if (subject.user == "cmsbot") {
+       if (subject.user == "control_my_server_bot_user") {
            if (action.id == "org.freedesktop.systemd1.manage-units" ||
                action.id == "org.freedesktop.login1.reboot" ||
                action.id == "org.freedesktop.login1.reboot-multiple-sessions") {
@@ -162,7 +162,7 @@ If you are installing manually and don't want to run the bot as `root`, you shou
 Alternatively, use `sudoers` fallback (not recommended if Polkit is available):
 Add the following to `/etc/sudoers.d/control-bot`:
 ```sudoers
-cmsbot ALL=(ALL) NOPASSWD: /usr/bin/systemctl restart *, /usr/sbin/reboot
+control_my_server_bot_user ALL=(ALL) NOPASSWD: /usr/bin/systemctl restart *, /usr/sbin/reboot
 ```
 *(Ensure the bot code calls `reboot` or `systemctl` directly, and the user has permissions).*
 
