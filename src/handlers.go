@@ -67,16 +67,18 @@ func handleCommand(bot *tgbotapi.BotAPI, msg *tgbotapi.Message, logger *Telegram
 			}
 			return
 		}
-		logger.Printf("🔄 Restarting server requested by chat %d (User %d)", chatID, userID)
-		if _, err := bot.Send(tgbotapi.NewMessage(chatID, "🔄 Restarting server...")); err != nil {
-			log.Printf("Failed to send restarting server message: %v", err)
-		}
-		cmd := exec.Command("reboot")
-		if err := cmd.Run(); err != nil {
-			logger.Printf("❌ Failed to restart server: %v", err)
-			if _, err := bot.Send(tgbotapi.NewMessage(chatID, "❌ Failed to restart server. See logs for details.")); err != nil {
-				log.Printf("Failed to send restart failure message: %v", err)
-			}
+		logger.Printf("🔄 Server restart requested by chat %d (User %d)", chatID, userID)
+
+		msg := tgbotapi.NewMessage(chatID, "⚠️ *Are you sure you want to restart the server?*")
+		msg.ParseMode = tgbotapi.ModeMarkdown
+		msg.ReplyMarkup = tgbotapi.NewInlineKeyboardMarkup(
+			tgbotapi.NewInlineKeyboardRow(
+				tgbotapi.NewInlineKeyboardButtonData("✅ Yes, restart", "confirm_restart_server"),
+				tgbotapi.NewInlineKeyboardButtonData("❌ No, cancel", "close_message"),
+			),
+		)
+		if _, err := bot.Send(msg); err != nil {
+			log.Printf("Failed to send restart confirmation message: %v", err)
 		}
 
 	case "get_services":

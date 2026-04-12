@@ -60,6 +60,27 @@ func handleCallback(bot *tgbotapi.BotAPI, query *tgbotapi.CallbackQuery, logger 
 		}
 		return
 	}
+	if data == "confirm_restart_server" {
+		logger.Printf("🔄 Restarting server confirmed by chat %d", query.Message.Chat.ID)
+		if _, err := bot.Send(tgbotapi.NewMessage(query.Message.Chat.ID, "🔄 Restarting server...")); err != nil {
+			log.Printf("Failed to send restarting server message: %v", err)
+		}
+
+		// Answer callback to remove loading state
+		callback := tgbotapi.NewCallback(query.ID, "🔄 Restarting server...")
+		if _, err := bot.Request(callback); err != nil {
+			log.Printf("Failed to send callback answer: %v", err)
+		}
+
+		cmd := exec.Command("reboot")
+		if err := cmd.Run(); err != nil {
+			logger.Printf("❌ Failed to restart server: %v", err)
+			if _, err := bot.Send(tgbotapi.NewMessage(query.Message.Chat.ID, "❌ Failed to restart server. See logs for details.")); err != nil {
+				log.Printf("Failed to send restart failure message: %v", err)
+			}
+		}
+		return
+	}
 
 	parts := strings.SplitN(data, ":", 2)
 	if len(parts) != 2 {
