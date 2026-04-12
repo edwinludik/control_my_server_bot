@@ -25,7 +25,6 @@ systemctl enable --now control_my_server_bot
 - `/get_ram_usage`: Show current RAM usage.
 - `/get_disk_usage`: Show free disk space on all drives.
 - `/get_services`: List available services (all running or from a whitelist).
-- `/restart_service <name>`: Restart a specific service.
 - `/restart_server`: Reboot the server.
 - **Multi-user Support**: Add and manage additional users.
   - `/add_user <id>`: Grant full permissions to a user (Owner only).
@@ -154,7 +153,6 @@ The bot runs as a dedicated non-root user (`control_my_server_bot_user`) for enh
 - **Dedicated User**: The bot runs as `control_my_server_bot_user` with restricted access.
 - **Polkit/Sudoers Control**: Only specific actions (`systemctl restart`, `reboot`) are permitted for the `control_my_server_bot_user` user.
 - **Rate Limiting**: Commands are rate-limited to 5 per minute per user to prevent spam.
-- **Service Name Validation**: Input for `/restart_service` is validated against a strict regex (`^[a-zA-Z0-9\-_.]+$`) to prevent command injection.
 - **File Permissions**: The bot automatically attempts to set restricted permissions (`0600`) on the `.env` and SQLite database files, and the installation directory is restricted to the `control_my_server_bot_user` user.
 - **Error Sanitization**: System-level error details are logged to the private log channel but not sent directly to the user who triggered the command.
 

@@ -5,7 +5,6 @@ import (
 	"log"
 	"os/exec"
 	"regexp"
-	"slices"
 	"strconv"
 	"strings"
 
@@ -39,7 +38,6 @@ func handleCommand(bot *tgbotapi.BotAPI, msg *tgbotapi.Message, logger *Telegram
 		"• /get\\_ram\\_usage — Show current RAM usage\n" +
 		"• /get\\_disk\\_usage — Show free disk space on all drives\n" +
 		"• /get\\_services — List available services\n" +
-		"• /restart\\_service <name> — Restart a service\n" +
 		"• /restart\\_server — Reboot the server"
 
 	if isOwner {
@@ -79,57 +77,6 @@ func handleCommand(bot *tgbotapi.BotAPI, msg *tgbotapi.Message, logger *Telegram
 			if _, err := bot.Send(tgbotapi.NewMessage(chatID, "❌ Failed to restart server. See logs for details.")); err != nil {
 				log.Printf("Failed to send restart failure message: %v", err)
 			}
-		}
-
-	case "restart_service":
-		if !isAuthorized {
-			if _, err := bot.Send(tgbotapi.NewMessage(chatID, "🚫 Permission denied.")); err != nil {
-				log.Printf("Failed to send permission denied message: %v", err)
-			}
-			return
-		}
-		serviceName := strings.TrimSpace(args)
-		if serviceName == "" {
-			if _, err := bot.Send(tgbotapi.NewMessage(chatID, "ℹ️ Please provide a service name.\nUsage: `/restart_service <name>`")); err != nil {
-				log.Printf("Failed to send usage message: %v", err)
-			}
-			return
-		}
-
-		if !serviceNameRegex.MatchString(serviceName) {
-			if _, err := bot.Send(tgbotapi.NewMessage(chatID, "❌ Invalid service name format.")); err != nil {
-				log.Printf("Failed to send invalid service name message: %v", err)
-			}
-			logger.Printf("⚠️ Invalid service name attempt: %s", serviceName)
-			return
-		}
-
-		logger.Printf("🔄 Restarting service %s requested by chat %d (User %d)", serviceName, chatID, userID)
-
-		if len(cfg.ControlledServices) > 0 && !slices.Contains(cfg.ControlledServices, serviceName) {
-			if _, err := bot.Send(tgbotapi.NewMessage(chatID, "🚫 Service is not in the controlled list.")); err != nil {
-				log.Printf("Failed to send service not controlled message: %v", err)
-			}
-			logger.Printf("⚠️ Unauthorized attempt to restart service: %s", serviceName)
-			return
-		}
-
-		if _, err := bot.Send(tgbotapi.NewMessage(chatID, fmt.Sprintf("🔄 Restarting service: %s...", serviceName))); err != nil {
-			log.Printf("Failed to send restarting service message: %v", err)
-		}
-		// #nosec G204
-		cmd := exec.Command("systemctl", "restart", serviceName)
-		if err := cmd.Run(); err != nil {
-			logger.Printf("❌ Failed to restart service %s: %v", serviceName, err)
-			if _, err := bot.Send(tgbotapi.NewMessage(chatID, "❌ Failed to restart service. See logs for details.")); err != nil {
-				log.Printf("Failed to send restart failure message: %v", err)
-			}
-		} else {
-			successStr := fmt.Sprintf("✅ Service %s restarted successfully.", serviceName)
-			if _, err := bot.Send(tgbotapi.NewMessage(chatID, successStr)); err != nil {
-				log.Printf("Failed to send success message: %v", err)
-			}
-			logger.Printf("%s", successStr)
 		}
 
 	case "get_services":
