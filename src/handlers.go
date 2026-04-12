@@ -489,18 +489,21 @@ func handleCallback(bot *tgbotapi.BotAPI, query *tgbotapi.CallbackQuery, logger 
 	}
 
 	var cmd *exec.Cmd
-	var actionVerb string
+	var actionVerb, actionPast string
 	switch action {
 	case "service_start":
 		actionVerb = "starting"
+		actionPast = "started"
 		// #nosec G204
 		cmd = exec.Command("systemctl", "start", serviceName)
 	case "service_stop":
 		actionVerb = "stopping"
+		actionPast = "stopped"
 		// #nosec G204
 		cmd = exec.Command("systemctl", "stop", serviceName)
 	case "service_restart":
 		actionVerb = "restarting"
+		actionPast = "restarted"
 		// #nosec G204
 		cmd = exec.Command("systemctl", "restart", serviceName)
 	default:
@@ -521,7 +524,7 @@ func handleCallback(bot *tgbotapi.BotAPI, query *tgbotapi.CallbackQuery, logger 
 			log.Printf("Failed to send error message: %v", err)
 		}
 	} else {
-		successMsg := fmt.Sprintf("✅ Service %s %s successfully.", serviceName, actionVerb+"ed")
+		successMsg := fmt.Sprintf("✅ Service %s %s successfully.", serviceName, actionPast)
 		logger.Printf("%s", successMsg)
 
 		// Update the original message with new status

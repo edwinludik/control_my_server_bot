@@ -44,7 +44,7 @@ func main() {
 
 	logger.Printf("🚀 Bot started and authorized as @%s", bot.Self.UserName)
 
-	limiter := NewRateLimiter(5, time.Minute) // 5 commands per minute per user
+	limiter := NewRateLimiter(10, time.Minute) // 5 commands per minute per user
 
 	// Log available services on start
 	services, err := getAvailableServices(cfg)
