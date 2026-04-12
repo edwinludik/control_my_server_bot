@@ -152,7 +152,12 @@ func handleCommand(bot *tgbotapi.BotAPI, msg *tgbotapi.Message, logger *Telegram
 				log.Printf("Failed to send no services found message: %v", err)
 			}
 		} else {
-			msg := tgbotapi.NewMessage(chatID, "📋 *Available Services:*\n• "+strings.Join(services, "\n• "))
+			var serviceList []string
+			for _, service := range services {
+				serviceList = append(serviceList, fmt.Sprintf("<code>%s</code>", service))
+			}
+			msg := tgbotapi.NewMessage(chatID, "📋 *Available Services:*\n• "+strings.Join(serviceList, "\n• "))
+			msg.ParseMode = tgbotapi.ModeHTML
 			msg.ParseMode = tgbotapi.ModeMarkdown
 			if _, err := bot.Send(msg); err != nil {
 				log.Printf("Failed to send services list message: %v", err)
