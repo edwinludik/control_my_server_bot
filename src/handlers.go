@@ -264,7 +264,9 @@ func handleCommand(bot *tgbotapi.BotAPI, msg *tgbotapi.Message, logger *Telegram
 		}
 		parts := strings.Fields(args)
 		if len(parts) < 1 {
-			if _, err := bot.Send(tgbotapi.NewMessage(chatID, "ℹ️ Usage: `/add_user <id>`")); err != nil {
+			msg := tgbotapi.NewMessage(chatID, "ℹ️ Usage: <code>/add_user <id></code>")
+			msg.ParseMode = tgbotapi.ModeHTML
+			if _, err := bot.Send(msg); err != nil {
 				log.Printf("Failed to send usage message: %v", err)
 			}
 			return
@@ -297,7 +299,9 @@ func handleCommand(bot *tgbotapi.BotAPI, msg *tgbotapi.Message, logger *Telegram
 		}
 		id, err := strconv.ParseInt(strings.TrimSpace(args), 10, 64)
 		if err != nil {
-			if _, err := bot.Send(tgbotapi.NewMessage(chatID, "ℹ️ Usage: `/delete_user <id>`")); err != nil {
+			msg := tgbotapi.NewMessage(chatID, "ℹ️ Usage: <code>/delete_user <id></code>")
+			msg.ParseMode = tgbotapi.ModeHTML
+			if _, err := bot.Send(msg); err != nil {
 				log.Printf("Failed to send usage message: %v", err)
 			}
 			return
