@@ -108,8 +108,17 @@ func handleCommand(bot *tgbotapi.BotAPI, msg *tgbotapi.Message, logger *Telegram
 
 			var keyboard [][]tgbotapi.InlineKeyboardButton
 			for _, service := range services {
+				status := getServiceStatus(service)
+				statusEmoji := "❓"
+				if strings.Contains(status, "active (running)") {
+					statusEmoji = "🟢"
+				} else if strings.Contains(status, "inactive") {
+					statusEmoji = "🔴"
+				} else if strings.Contains(status, "failed") {
+					statusEmoji = "❌"
+				}
 				row := []tgbotapi.InlineKeyboardButton{
-					tgbotapi.NewInlineKeyboardButtonData("📦 "+service, fmt.Sprintf("service_view:%s", service)),
+					tgbotapi.NewInlineKeyboardButtonData(fmt.Sprintf("%s %s", statusEmoji, service), fmt.Sprintf("service_view:%s", service)),
 				}
 				keyboard = append(keyboard, row)
 			}
