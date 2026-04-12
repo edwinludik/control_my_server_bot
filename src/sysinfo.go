@@ -66,18 +66,3 @@ func getDiskSpaceInfo() (string, error) {
 
 	return strings.Join(result, "\n"), nil
 }
-
-func getTopProcesses() (string, error) {
-	// Using ps aux --sort=-%cpu | head -n 11 on Linux
-	// (head -n 11 includes header + top 10 processes)
-	out, err := exec.Command("sh", "-c", "ps aux --sort=-%cpu 2>/dev/null | head -n 11").Output()
-	if err != nil || len(out) == 0 {
-		// Fallback for systems where --sort is not supported (e.g. some Linux distros, macOS)
-		// We use a more compatible approach: ps aux, then sort manually
-		out, err = exec.Command("sh", "-c", "ps aux | sort -rn -k 3 | head -n 11").Output()
-		if err != nil {
-			return "Top processes info not available", nil
-		}
-	}
-	return strings.TrimSpace(string(out)), nil
-}
