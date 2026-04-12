@@ -164,7 +164,9 @@ func handleCommand(bot *tgbotapi.BotAPI, msg *tgbotapi.Message, logger *Telegram
 				keyboard = append(keyboard, row)
 			}
 
-			msg.ReplyMarkup = tgbotapi.NewInlineKeyboardMarkup(keyboard...)
+			msg.ReplyMarkup = tgbotapi.NewInlineKeyboardMarkup(append(keyboard, []tgbotapi.InlineKeyboardButton{
+				tgbotapi.NewInlineKeyboardButtonData("Close", "close_message"),
+			})...)
 			if _, err := bot.Send(msg); err != nil {
 				log.Printf("Failed to send services list message: %v", err)
 			}
@@ -417,6 +419,13 @@ func parseStatus(output string) string {
 
 func handleCallback(bot *tgbotapi.BotAPI, query *tgbotapi.CallbackQuery, logger *TelegramLogger, cfg *Config) {
 	data := query.Data
+	if data == "close_message" {
+		deleteMsg := tgbotapi.NewDeleteMessage(query.Message.Chat.ID, query.Message.MessageID)
+		if _, err := bot.Send(deleteMsg); err != nil {
+			log.Printf("Failed to delete message: %v", err)
+		}
+		return
+	}
 	if data == "services_list" {
 		services, err := getAvailableServices(cfg)
 		if err != nil {
@@ -448,6 +457,9 @@ func handleCallback(bot *tgbotapi.BotAPI, query *tgbotapi.CallbackQuery, logger 
 			}
 			keyboard = append(keyboard, row)
 		}
+		keyboard = append(keyboard, []tgbotapi.InlineKeyboardButton{
+			tgbotapi.NewInlineKeyboardButtonData("❌ Close", "close_message"),
+		})
 		editMsg.ReplyMarkup = &tgbotapi.InlineKeyboardMarkup{InlineKeyboard: keyboard}
 
 		if _, err := bot.Send(editMsg); err != nil {
