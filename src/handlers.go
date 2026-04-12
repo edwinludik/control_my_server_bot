@@ -394,7 +394,7 @@ func parseStatus(output string) string {
 	return "unknown"
 }
 
-func handleCallback(bot *tgbotapi.BotAPI, query *tgbotapi.CallbackQuery, logger *TelegramLogger, cfg *Config, userStore *UserStore) {
+func handleCallback(bot *tgbotapi.BotAPI, query *tgbotapi.CallbackQuery, logger *TelegramLogger, cfg *Config) {
 	data := query.Data
 	if data == "services_list" {
 		services, err := getAvailableServices(cfg)
@@ -508,7 +508,7 @@ func handleCallback(bot *tgbotapi.BotAPI, query *tgbotapi.CallbackQuery, logger 
 	}
 
 	// Answer callback to remove loading state
-	callback := tgbotapi.NewCallback(query.ID, fmt.Sprintf("🔄 %s %s...", strings.Title(actionVerb), serviceName))
+	callback := tgbotapi.NewCallback(query.ID, fmt.Sprintf("🔄 %s %s...", strings.ToUpper(actionVerb[:1])+actionVerb[1:], serviceName))
 	if _, err := bot.Request(callback); err != nil {
 		log.Printf("Failed to send callback answer: %v", err)
 	}

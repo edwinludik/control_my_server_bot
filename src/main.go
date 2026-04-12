@@ -140,7 +140,7 @@ func main() {
 					}
 				}
 
-				handleCallback(bot, update.CallbackQuery, logger, cfg, userStore)
+				handleCallback(bot, update.CallbackQuery, logger, cfg)
 			}
 		}()
 	}
