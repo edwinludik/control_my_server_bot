@@ -184,8 +184,29 @@ func handleCommand(bot *tgbotapi.BotAPI, msg *tgbotapi.Message, logger *Telegram
 		cpuUsage, _ := getCPUUsageInfo()
 		ramUsage, _ := getRAMUsageInfo()
 		diskInfo, _ := getDiskSpaceInfo()
+
 		statusMsg := fmt.Sprintf("🖥 *Server Status*\n\n*Uptime:* %s\n\n*CPU Usage:*\n%s\n\n*RAM Usage:*\n%s\n\n*Disk Space:*\n%s",
 			strings.TrimSpace(string(uptime)), cpuUsage, ramUsage, diskInfo)
+
+		// Get services status
+		services, err := getAvailableServices(cfg)
+		if err == nil && len(services) > 0 {
+			var servicesStatus []string
+			for _, service := range services {
+				status := getServiceStatus(service)
+				statusEmoji := "❓"
+				if strings.Contains(status, "active (running)") {
+					statusEmoji = "🟢"
+				} else if strings.Contains(status, "inactive") {
+					statusEmoji = "🔴"
+				} else if strings.Contains(status, "failed") {
+					statusEmoji = "❌"
+				}
+				servicesStatus = append(servicesStatus, fmt.Sprintf("%s %s", statusEmoji, service))
+			}
+			statusMsg += "\n\n📋 *Services Status:*\n" + strings.Join(servicesStatus, "\n")
+		}
+
 		msg := tgbotapi.NewMessage(chatID, statusMsg)
 		msg.ParseMode = tgbotapi.ModeMarkdown
 		if _, err := bot.Send(msg); err != nil {
