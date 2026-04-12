@@ -1,12 +1,10 @@
 package main
 
 import (
-	"fmt"
 	"log"
 	"os"
 	"strconv"
 	"strings"
-	"time"
 
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
 	"github.com/joho/godotenv"
@@ -44,8 +42,6 @@ func main() {
 
 	logger.Printf("🚀 Bot started and authorized as @%s", bot.Self.UserName)
 
-	limiter := NewRateLimiter(10, time.Minute) // 5 commands per minute per user
-
 	// Log available services on start
 	services, err := getAvailableServices(cfg)
 	if err != nil {
@@ -80,17 +76,6 @@ func main() {
 				}
 				userID := update.Message.From.ID
 
-				// Rate limiting
-				if allowed, cooldown := limiter.Allow(userID); !allowed {
-					logger.Printf("Rate limit exceeded for User ID: %d (Cooldown: %v)", userID, cooldown.Round(time.Second))
-					// Send message with cooldown time
-					msg := tgbotapi.NewMessage(update.Message.Chat.ID, fmt.Sprintf("Too many requests. Please wait %v.", cooldown.Round(time.Second)))
-					if _, err := bot.Send(msg); err != nil {
-						log.Printf("Failed to send rate limit message to User %d: %v", userID, err)
-					}
-					return
-				}
-
 				// Check authorization: Owner or exists in userStore
 				if userID != cfg.OwnerID {
 					authorized, err := userStore.UserExists(userID)
@@ -113,16 +98,6 @@ func main() {
 					return
 				}
 				userID := update.CallbackQuery.From.ID
-
-				// Rate limiting for callbacks too
-				if allowed, cooldown := limiter.Allow(userID); !allowed {
-					logger.Printf("Rate limit exceeded for Callback from User ID: %d (Cooldown: %v)", userID, cooldown.Round(time.Second))
-					callback := tgbotapi.NewCallback(update.CallbackQuery.ID, fmt.Sprintf("Too many requests. Please wait %v.", cooldown.Round(time.Second)))
-					if _, err := bot.Request(callback); err != nil {
-						log.Printf("Failed to send rate limit callback answer to User %d: %v", userID, err)
-					}
-					return
-				}
 
 				// Check authorization for callbacks
 				if userID != cfg.OwnerID {

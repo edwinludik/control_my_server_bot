@@ -153,7 +153,6 @@ The bot runs as a dedicated non-root user (`control_my_server_bot_user`) for enh
 ### Hardening Measures
 - **Dedicated User**: The bot runs as `control_my_server_bot_user` with restricted access.
 - **Polkit/Sudoers Control**: Only specific actions (`systemctl restart`, `reboot`) are permitted for the `control_my_server_bot_user` user.
-- **Rate Limiting**: Commands are rate-limited to 5 per minute per user to prevent spam.
 - **File Permissions**: The bot automatically attempts to set restricted permissions (`0600`) on the `.env` and SQLite database files, and the installation directory is restricted to the `control_my_server_bot_user` user.
 - **Error Sanitization**: System-level error details are logged to the private log channel but not sent directly to the user who triggered the command.
 
