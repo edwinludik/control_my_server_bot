@@ -37,6 +37,7 @@ func handleCommand(bot *tgbotapi.BotAPI, msg *tgbotapi.Message, logger *Telegram
 		"• /get\\_cpu\\_usage — Show current CPU usage\n" +
 		"• /get\\_ram\\_usage — Show current RAM usage\n" +
 		"• /get\\_disk\\_usage — Show free disk space on all drives\n" +
+		"• /get\\_top — Show top 10 CPU-consuming processes\n" +
 		"• /get\\_services — List available services\n" +
 		"• /restart\\_server — Reboot the server"
 
@@ -222,6 +223,27 @@ func handleCommand(bot *tgbotapi.BotAPI, msg *tgbotapi.Message, logger *Telegram
 		msg.ParseMode = tgbotapi.ModeMarkdown
 		if _, err := bot.Send(msg); err != nil {
 			log.Printf("Failed to send disk space message: %v", err)
+		}
+
+	case "get_top":
+		if !isAuthorized {
+			if _, err := bot.Send(tgbotapi.NewMessage(chatID, "🚫 Permission denied.")); err != nil {
+				log.Printf("Failed to send permission denied message: %v", err)
+			}
+			return
+		}
+		topInfo, err := getTopProcesses()
+		if err != nil {
+			if _, err := bot.Send(tgbotapi.NewMessage(chatID, "❌ Failed to get top processes: "+err.Error())); err != nil {
+				log.Printf("Failed to send get top processes failure message: %v", err)
+			}
+			return
+		}
+		// Wrap top output in code block for better readability
+		msg := tgbotapi.NewMessage(chatID, "🔝 *Top CPU Processes:*\n<pre>"+topInfo+"</pre>")
+		msg.ParseMode = tgbotapi.ModeHTML
+		if _, err := bot.Send(msg); err != nil {
+			log.Printf("Failed to send top processes message: %v", err)
 		}
 
 	case "add_user":

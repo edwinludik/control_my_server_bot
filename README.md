@@ -24,6 +24,7 @@ systemctl enable --now control_my_server_bot
 - `/get_cpu_usage`: Show current CPU usage.
 - `/get_ram_usage`: Show current RAM usage.
 - `/get_disk_usage`: Show free disk space on all drives.
+- `/get_top`: Show top 10 CPU-consuming processes.
 - `/get_services`: List available services (all running or from a whitelist).
 - `/restart_server`: Reboot the server.
 - **Multi-user Support**: Add and manage additional users.
