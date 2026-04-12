@@ -234,27 +234,6 @@ func handleCommand(bot *tgbotapi.BotAPI, msg *tgbotapi.Message, logger *Telegram
 			log.Printf("Failed to send disk space message: %v", err)
 		}
 
-	case "get_top":
-		if !isAuthorized {
-			if _, err := bot.Send(tgbotapi.NewMessage(chatID, "🚫 Permission denied.")); err != nil {
-				log.Printf("Failed to send permission denied message: %v", err)
-			}
-			return
-		}
-		topInfo, err := getTopProcesses()
-		if err != nil {
-			if _, err := bot.Send(tgbotapi.NewMessage(chatID, "❌ Failed to get top processes: "+err.Error())); err != nil {
-				log.Printf("Failed to send get top processes failure message: %v", err)
-			}
-			return
-		}
-		// Wrap top output in code block for better readability
-		msg := tgbotapi.NewMessage(chatID, "🔝 *Top CPU Processes:*\n<pre>"+topInfo+"</pre>")
-		msg.ParseMode = tgbotapi.ModeHTML
-		if _, err := bot.Send(msg); err != nil {
-			log.Printf("Failed to send top processes message: %v", err)
-		}
-
 	case "add_user":
 		if !isOwner {
 			if _, err := bot.Send(tgbotapi.NewMessage(chatID, "🚫 Only the owner can add users.")); err != nil {
