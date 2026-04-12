@@ -413,7 +413,7 @@ func handleCallback(bot *tgbotapi.BotAPI, query *tgbotapi.CallbackQuery, logger 
 		var keyboard [][]tgbotapi.InlineKeyboardButton
 		for _, service := range services {
 			row := []tgbotapi.InlineKeyboardButton{
-				tgbotapi.NewInlineKeyboardButtonData("📦 "+service, fmt.Sprintf("service_view:%s", service)),
+				tgbotapi.NewInlineKeyboardButtonData(""+service, fmt.Sprintf("service_view:%s", service)),
 			}
 			keyboard = append(keyboard, row)
 		}
