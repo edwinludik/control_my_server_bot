@@ -37,7 +37,6 @@ func handleCommand(bot *tgbotapi.BotAPI, msg *tgbotapi.Message, logger *Telegram
 		"• /get\\_cpu\\_usage — Show current CPU usage\n" +
 		"• /get\\_ram\\_usage — Show current RAM usage\n" +
 		"• /get\\_disk\\_usage — Show free disk space on all drives\n" +
-		"• /get\\_top — Show top 10 CPU-consuming processes\n" +
 		"• /get\\_services — List available services\n" +
 		"• /restart\\_server — Reboot the server"
 
