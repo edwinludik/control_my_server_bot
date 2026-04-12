@@ -70,44 +70,78 @@ func main() {
 				}
 			}()
 
-			if update.Message == nil { // ignore any non-Message updates
-				return
-			}
-
-			if !update.Message.IsCommand() { // ignore any non-command Messages
-				return
-			}
-
-			userID := update.Message.From.ID
-
-			// Rate limiting
-			if allowed, cooldown := limiter.Allow(userID); !allowed {
-				logger.Printf("Rate limit exceeded for User ID: %d (Cooldown: %v)", userID, cooldown.Round(time.Second))
-				// Send message with cooldown time
-				msg := tgbotapi.NewMessage(update.Message.Chat.ID, fmt.Sprintf("Too many requests. Please wait %v.", cooldown.Round(time.Second)))
-				if _, err := bot.Send(msg); err != nil {
-					log.Printf("Failed to send rate limit message to User %d: %v", userID, err)
-				}
-				return
-			}
-
-			// Check authorization: Owner or exists in userStore
-			if userID != cfg.OwnerID {
-				authorized, err := userStore.UserExists(userID)
-				if err != nil {
-					logger.Printf("Error checking authorization for %d: %v", userID, err)
-				}
-				if !authorized {
-					msg := tgbotapi.NewMessage(update.Message.Chat.ID, "Access Denied.")
-					if _, err := bot.Send(msg); err != nil {
-						log.Printf("Failed to send access denied message to User %d: %v", userID, err)
-					}
-					logger.Printf("Unauthorized access attempt from User ID: %d", userID)
+			if update.Message != nil {
+				if !update.Message.IsCommand() { // ignore any non-command Messages
 					return
 				}
-			}
 
-			handleCommand(bot, update.Message, logger, cfg, userStore)
+				if update.Message.From == nil {
+					return
+				}
+				userID := update.Message.From.ID
+
+				// Rate limiting
+				if allowed, cooldown := limiter.Allow(userID); !allowed {
+					logger.Printf("Rate limit exceeded for User ID: %d (Cooldown: %v)", userID, cooldown.Round(time.Second))
+					// Send message with cooldown time
+					msg := tgbotapi.NewMessage(update.Message.Chat.ID, fmt.Sprintf("Too many requests. Please wait %v.", cooldown.Round(time.Second)))
+					if _, err := bot.Send(msg); err != nil {
+						log.Printf("Failed to send rate limit message to User %d: %v", userID, err)
+					}
+					return
+				}
+
+				// Check authorization: Owner or exists in userStore
+				if userID != cfg.OwnerID {
+					authorized, err := userStore.UserExists(userID)
+					if err != nil {
+						logger.Printf("Error checking authorization for %d: %v", userID, err)
+					}
+					if !authorized {
+						msg := tgbotapi.NewMessage(update.Message.Chat.ID, "Access Denied.")
+						if _, err := bot.Send(msg); err != nil {
+							log.Printf("Failed to send access denied message to User %d: %v", userID, err)
+						}
+						logger.Printf("Unauthorized access attempt from User ID: %d", userID)
+						return
+					}
+				}
+
+				handleCommand(bot, update.Message, logger, cfg, userStore)
+			} else if update.CallbackQuery != nil {
+				if update.CallbackQuery.From == nil {
+					return
+				}
+				userID := update.CallbackQuery.From.ID
+
+				// Rate limiting for callbacks too
+				if allowed, cooldown := limiter.Allow(userID); !allowed {
+					logger.Printf("Rate limit exceeded for Callback from User ID: %d (Cooldown: %v)", userID, cooldown.Round(time.Second))
+					callback := tgbotapi.NewCallback(update.CallbackQuery.ID, fmt.Sprintf("Too many requests. Please wait %v.", cooldown.Round(time.Second)))
+					if _, err := bot.Request(callback); err != nil {
+						log.Printf("Failed to send rate limit callback answer to User %d: %v", userID, err)
+					}
+					return
+				}
+
+				// Check authorization for callbacks
+				if userID != cfg.OwnerID {
+					authorized, err := userStore.UserExists(userID)
+					if err != nil {
+						logger.Printf("Error checking authorization for %d: %v", userID, err)
+					}
+					if !authorized {
+						callback := tgbotapi.NewCallback(update.CallbackQuery.ID, "Access Denied.")
+						if _, err := bot.Request(callback); err != nil {
+							log.Printf("Failed to send access denied callback answer to User %d: %v", userID, err)
+						}
+						logger.Printf("Unauthorized callback attempt from User ID: %d", userID)
+						return
+					}
+				}
+
+				handleCallback(bot, update.CallbackQuery, logger, cfg, userStore)
+			}
 		}()
 	}
 }
