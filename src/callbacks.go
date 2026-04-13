@@ -29,7 +29,7 @@ func handleCallback(bot *tgbotapi.BotAPI, query *tgbotapi.CallbackQuery, logger 
 			return
 		}
 
-		msgText := "📋 *Available Services:*"
+		msgText := "Available Services:"
 		editMsg := tgbotapi.NewEditMessageText(query.Message.Chat.ID, query.Message.MessageID, msgText)
 		editMsg.ParseMode = tgbotapi.ModeMarkdown
 
@@ -62,12 +62,12 @@ func handleCallback(bot *tgbotapi.BotAPI, query *tgbotapi.CallbackQuery, logger 
 	}
 	if data == "confirm_restart_server" {
 		logger.Printf("Restarting server confirmed by %s", formatUser(query.From))
-		if _, err := bot.Send(tgbotapi.NewMessage(query.Message.Chat.ID, "🔄 Restarting server...")); err != nil {
+		if _, err := bot.Send(tgbotapi.NewMessage(query.Message.Chat.ID, "Restarting server...")); err != nil {
 			log.Printf("Failed to send restarting server message: %v", err)
 		}
 
 		// Answer callback to remove loading state
-		callback := tgbotapi.NewCallback(query.ID, "🔄 Restarting server...")
+		callback := tgbotapi.NewCallback(query.ID, "Restarting server...")
 		if _, err := bot.Request(callback); err != nil {
 			log.Printf("Failed to send callback answer: %v", err)
 		}
@@ -117,7 +117,7 @@ func handleCallback(bot *tgbotapi.BotAPI, query *tgbotapi.CallbackQuery, logger 
 			statusEmoji = "❌"
 		}
 
-		msgText := fmt.Sprintf("📦 *Service:* <code>%s</code>\n*Status:* %s %s", serviceName, statusEmoji, status)
+		msgText := fmt.Sprintf("Service: <code>%s</code>\nStatus: %s %s", serviceName, statusEmoji, status)
 		editMsg := tgbotapi.NewEditMessageText(query.Message.Chat.ID, query.Message.MessageID, msgText)
 		editMsg.ParseMode = tgbotapi.ModeHTML
 
@@ -125,15 +125,15 @@ func handleCallback(bot *tgbotapi.BotAPI, query *tgbotapi.CallbackQuery, logger 
 		var row []tgbotapi.InlineKeyboardButton
 
 		if strings.Contains(status, "active (running)") {
-			row = append(row, tgbotapi.NewInlineKeyboardButtonData("🛑 Stop", fmt.Sprintf("service_stop:%s", serviceName)))
-			row = append(row, tgbotapi.NewInlineKeyboardButtonData("🔄 Restart", fmt.Sprintf("service_restart:%s", serviceName)))
+			row = append(row, tgbotapi.NewInlineKeyboardButtonData("Stop", fmt.Sprintf("service_stop:%s", serviceName)))
+			row = append(row, tgbotapi.NewInlineKeyboardButtonData("Restart", fmt.Sprintf("service_restart:%s", serviceName)))
 		} else {
-			row = append(row, tgbotapi.NewInlineKeyboardButtonData("▶️ Start", fmt.Sprintf("service_start:%s", serviceName)))
+			row = append(row, tgbotapi.NewInlineKeyboardButtonData("Start", fmt.Sprintf("service_start:%s", serviceName)))
 		}
 		keyboard = append(keyboard, row)
 
 		backRow := []tgbotapi.InlineKeyboardButton{
-			tgbotapi.NewInlineKeyboardButtonData("⬅️ Back to list", "services_list"),
+			tgbotapi.NewInlineKeyboardButtonData("Back to list", "services_list"),
 		}
 		keyboard = append(keyboard, backRow)
 
@@ -195,7 +195,7 @@ func handleCallback(bot *tgbotapi.BotAPI, query *tgbotapi.CallbackQuery, logger 
 			statusEmoji = "❌"
 		}
 
-		newText := fmt.Sprintf("*Service:* <code>%s</code>\n*Status:* %s %s\n\n%s", serviceName, statusEmoji, status, successMsg)
+		newText := fmt.Sprintf("Service: <code>%s</code>\nStatus: %s %s\n\n%s", serviceName, statusEmoji, status, successMsg)
 		editMsg := tgbotapi.NewEditMessageText(query.Message.Chat.ID, query.Message.MessageID, newText)
 		editMsg.ParseMode = tgbotapi.ModeHTML
 
@@ -203,16 +203,16 @@ func handleCallback(bot *tgbotapi.BotAPI, query *tgbotapi.CallbackQuery, logger 
 		var row []tgbotapi.InlineKeyboardButton
 
 		if strings.Contains(status, "active (running)") {
-			row = append(row, tgbotapi.NewInlineKeyboardButtonData("🛑 Stop", fmt.Sprintf("service_stop:%s", serviceName)))
-			row = append(row, tgbotapi.NewInlineKeyboardButtonData("🔄 Restart", fmt.Sprintf("service_restart:%s", serviceName)))
+			row = append(row, tgbotapi.NewInlineKeyboardButtonData("Stop", fmt.Sprintf("service_stop:%s", serviceName)))
+			row = append(row, tgbotapi.NewInlineKeyboardButtonData("Restart", fmt.Sprintf("service_restart:%s", serviceName)))
 		} else {
-			row = append(row, tgbotapi.NewInlineKeyboardButtonData("▶️ Start", fmt.Sprintf("service_start:%s", serviceName)))
+			row = append(row, tgbotapi.NewInlineKeyboardButtonData("Start", fmt.Sprintf("service_start:%s", serviceName)))
 		}
 
 		keyboard = append(keyboard, row)
 
 		backRow := []tgbotapi.InlineKeyboardButton{
-			tgbotapi.NewInlineKeyboardButtonData("⬅️ Back to list", "services_list"),
+			tgbotapi.NewInlineKeyboardButtonData("Back to list", "services_list"),
 		}
 		keyboard = append(keyboard, backRow)
 

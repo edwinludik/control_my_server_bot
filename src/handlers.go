@@ -31,7 +31,7 @@ func handleCommand(bot *tgbotapi.BotAPI, msg *tgbotapi.Message, logger *Telegram
 
 	logger.Printf("Command received: /%s from %s (Chat %d)", command, formatUser(msg.From), chatID)
 
-	helpText := "🤖 *Available Commands:*\n" +
+	helpText := "Available Commands:\n" +
 		"• /ping — Return \"Pong!\"\n" +
 		"• /status — Check server status, RAM, CPU, and disk space\n" +
 		"• /get\\_cpu\\_usage — Show current CPU usage\n" +
@@ -41,7 +41,7 @@ func handleCommand(bot *tgbotapi.BotAPI, msg *tgbotapi.Message, logger *Telegram
 		"• /restart\\_server — Reboot the server"
 
 	if isOwner {
-		helpText += "\n\n🔑 *Owner Commands:*\n" +
+		helpText += "\n\n *Owner Commands:*\n" +
 			"• /add\\_user <id> — Add an authorized user\n" +
 			"• /delete\\_user <id> — Remove a user\n" +
 			"• /get\\_users — List all authorized users"
@@ -49,7 +49,7 @@ func handleCommand(bot *tgbotapi.BotAPI, msg *tgbotapi.Message, logger *Telegram
 
 	switch command {
 	case "ping":
-		if _, err := bot.Send(tgbotapi.NewMessage(chatID, "🏓 Pong!")); err != nil {
+		if _, err := bot.Send(tgbotapi.NewMessage(chatID, "Pong!")); err != nil {
 			log.Printf("Failed to send ping response: %v", err)
 		}
 
@@ -73,8 +73,8 @@ func handleCommand(bot *tgbotapi.BotAPI, msg *tgbotapi.Message, logger *Telegram
 		msg.ParseMode = tgbotapi.ModeMarkdown
 		msg.ReplyMarkup = tgbotapi.NewInlineKeyboardMarkup(
 			tgbotapi.NewInlineKeyboardRow(
-				tgbotapi.NewInlineKeyboardButtonData("✅ Yes, restart", "confirm_restart_server"),
-				tgbotapi.NewInlineKeyboardButtonData("❌ No, cancel", "close_message"),
+				tgbotapi.NewInlineKeyboardButtonData("Yes, restart", "confirm_restart_server"),
+				tgbotapi.NewInlineKeyboardButtonData("No, cancel", "close_message"),
 			),
 		)
 		if _, err := bot.Send(msg); err != nil {
@@ -97,11 +97,11 @@ func handleCommand(bot *tgbotapi.BotAPI, msg *tgbotapi.Message, logger *Telegram
 		}
 
 		if len(services) == 0 {
-			if _, err := bot.Send(tgbotapi.NewMessage(chatID, "ℹ️ No services found.")); err != nil {
+			if _, err := bot.Send(tgbotapi.NewMessage(chatID, "No services found.")); err != nil {
 				log.Printf("Failed to send no services found message: %v", err)
 			}
 		} else {
-			msgText := "📋 *Available Services:*"
+			msgText := "Available Services:"
 			msg := tgbotapi.NewMessage(chatID, msgText)
 			msg.ParseMode = tgbotapi.ModeMarkdown
 
@@ -145,7 +145,7 @@ func handleCommand(bot *tgbotapi.BotAPI, msg *tgbotapi.Message, logger *Telegram
 		ramUsage, _ := getRAMUsageInfo()
 		diskInfo, _ := getDiskSpaceInfo()
 
-		statusMsg := fmt.Sprintf("🖥 *Server Status*\n\n*Uptime:* %s\n\n*CPU Usage:*\n%s\n\n*RAM Usage:*\n%s\n\n*Disk Space:*\n%s",
+		statusMsg := fmt.Sprintf("Server Status\n\nUptime: %s\n\nCPU Usage:\n%s\n\nRAM Usage:\n%s\n\nDisk Space:\n%s",
 			strings.TrimSpace(string(uptime)), cpuUsage, ramUsage, diskInfo)
 
 		// Get services status
@@ -164,7 +164,7 @@ func handleCommand(bot *tgbotapi.BotAPI, msg *tgbotapi.Message, logger *Telegram
 				}
 				servicesStatus = append(servicesStatus, fmt.Sprintf("%s %s", statusEmoji, service))
 			}
-			statusMsg += "\n\n📋 *Services Status:*\n" + strings.Join(servicesStatus, "\n")
+			statusMsg += "\n\nServices Status:\n" + strings.Join(servicesStatus, "\n")
 		}
 
 		msg := tgbotapi.NewMessage(chatID, statusMsg)
@@ -187,7 +187,7 @@ func handleCommand(bot *tgbotapi.BotAPI, msg *tgbotapi.Message, logger *Telegram
 			}
 			return
 		}
-		msg := tgbotapi.NewMessage(chatID, "📊 *CPU Usage:*\n"+cpuUsage)
+		msg := tgbotapi.NewMessage(chatID, "CPU Usage:\n"+cpuUsage)
 		msg.ParseMode = tgbotapi.ModeMarkdown
 		if _, err := bot.Send(msg); err != nil {
 			log.Printf("Failed to send CPU usage message: %v", err)
@@ -207,7 +207,7 @@ func handleCommand(bot *tgbotapi.BotAPI, msg *tgbotapi.Message, logger *Telegram
 			}
 			return
 		}
-		msg := tgbotapi.NewMessage(chatID, "💾 *RAM Usage:*\n"+ramUsage)
+		msg := tgbotapi.NewMessage(chatID, "RAM Usage:\n"+ramUsage)
 		msg.ParseMode = tgbotapi.ModeMarkdown
 		if _, err := bot.Send(msg); err != nil {
 			log.Printf("Failed to send RAM usage message: %v", err)
@@ -227,7 +227,7 @@ func handleCommand(bot *tgbotapi.BotAPI, msg *tgbotapi.Message, logger *Telegram
 			}
 			return
 		}
-		msg := tgbotapi.NewMessage(chatID, "💽 *Free Disk Space:*\n"+diskInfo)
+		msg := tgbotapi.NewMessage(chatID, "Free Disk Space:\n"+diskInfo)
 		msg.ParseMode = tgbotapi.ModeMarkdown
 		if _, err := bot.Send(msg); err != nil {
 			log.Printf("Failed to send disk space message: %v", err)
@@ -242,7 +242,7 @@ func handleCommand(bot *tgbotapi.BotAPI, msg *tgbotapi.Message, logger *Telegram
 		}
 		parts := strings.Fields(args)
 		if len(parts) < 1 {
-			msg := tgbotapi.NewMessage(chatID, "ℹ️ Usage: <code>/add_user <id></code>")
+			msg := tgbotapi.NewMessage(chatID, "Usage: <code>/add_user <id></code>")
 			msg.ParseMode = tgbotapi.ModeHTML
 			if _, err := bot.Send(msg); err != nil {
 				log.Printf("Failed to send usage message: %v", err)
@@ -261,11 +261,11 @@ func handleCommand(bot *tgbotapi.BotAPI, msg *tgbotapi.Message, logger *Telegram
 				log.Printf("Failed to send add user failure message: %v", err)
 			}
 		} else {
-			successStr := fmt.Sprintf("✅ User %d added with full permissions.", id)
+			successStr := fmt.Sprintf("User %d added with full permissions.", id)
 			if _, err := bot.Send(tgbotapi.NewMessage(chatID, successStr)); err != nil {
 				log.Printf("Failed to send user added message: %v", err)
 			}
-			logger.Printf("👤 User %d added with full permissions by owner (%s)", id, formatUser(msg.From))
+			logger.Printf("User %d added with full permissions by owner (%s)", id, formatUser(msg.From))
 		}
 
 	case "delete_user":
@@ -277,7 +277,7 @@ func handleCommand(bot *tgbotapi.BotAPI, msg *tgbotapi.Message, logger *Telegram
 		}
 		id, err := strconv.ParseInt(strings.TrimSpace(args), 10, 64)
 		if err != nil {
-			msg := tgbotapi.NewMessage(chatID, "ℹ️ Usage: <code>/delete_user <id></code>")
+			msg := tgbotapi.NewMessage(chatID, "Usage: <code>/delete_user <id></code>")
 			msg.ParseMode = tgbotapi.ModeHTML
 			if _, err := bot.Send(msg); err != nil {
 				log.Printf("Failed to send usage message: %v", err)
@@ -289,11 +289,11 @@ func handleCommand(bot *tgbotapi.BotAPI, msg *tgbotapi.Message, logger *Telegram
 				log.Printf("Failed to send delete user failure message: %v", err)
 			}
 		} else {
-			successStr := fmt.Sprintf("✅ User %d deleted.", id)
+			successStr := fmt.Sprintf("User %d deleted.", id)
 			if _, err := bot.Send(tgbotapi.NewMessage(chatID, successStr)); err != nil {
 				log.Printf("Failed to send user deleted message: %v", err)
 			}
-			logger.Printf("👤 User %d deleted by owner (%s)", id, formatUser(msg.From))
+			logger.Printf("User %d deleted by owner (%s)", id, formatUser(msg.From))
 		}
 
 	case "get_users":
@@ -311,11 +311,11 @@ func handleCommand(bot *tgbotapi.BotAPI, msg *tgbotapi.Message, logger *Telegram
 			return
 		}
 		if len(users) == 0 {
-			if _, err := bot.Send(tgbotapi.NewMessage(chatID, "ℹ️ No authorized users found.")); err != nil {
+			if _, err := bot.Send(tgbotapi.NewMessage(chatID, "No authorized users found.")); err != nil {
 				log.Printf("Failed to send no users found message: %v", err)
 			}
 		} else {
-			msg := tgbotapi.NewMessage(chatID, "👥 *Authorized Users:*\n• "+strings.Join(users, "\n• "))
+			msg := tgbotapi.NewMessage(chatID, "Authorized Users:\n• "+strings.Join(users, "\n• "))
 			msg.ParseMode = tgbotapi.ModeMarkdown
 			if _, err := bot.Send(msg); err != nil {
 				log.Printf("Failed to send users list message: %v", err)
