@@ -27,3 +27,17 @@ func (l *TelegramLogger) Printf(format string, v ...any) {
 		log.Printf("Failed to send log message to Telegram: %v (original message: %s)", err, msg)
 	}
 }
+
+func formatUser(user *tgbotapi.User) string {
+	if user == nil {
+		return "unknown user"
+	}
+	name := user.FirstName
+	if user.LastName != "" {
+		name += " " + user.LastName
+	}
+	if user.UserName != "" {
+		return fmt.Sprintf("%s (@%s, ID: %d)", name, user.UserName, user.ID)
+	}
+	return fmt.Sprintf("%s (ID: %d)", name, user.ID)
+}

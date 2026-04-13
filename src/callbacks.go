@@ -61,7 +61,7 @@ func handleCallback(bot *tgbotapi.BotAPI, query *tgbotapi.CallbackQuery, logger 
 		return
 	}
 	if data == "confirm_restart_server" {
-		logger.Printf("🔄 Restarting server confirmed by chat %d", query.Message.Chat.ID)
+		logger.Printf("Restarting server confirmed by %s", formatUser(query.From))
 		if _, err := bot.Send(tgbotapi.NewMessage(query.Message.Chat.ID, "🔄 Restarting server...")); err != nil {
 			log.Printf("Failed to send restarting server message: %v", err)
 		}
@@ -175,14 +175,14 @@ func handleCallback(bot *tgbotapi.BotAPI, query *tgbotapi.CallbackQuery, logger 
 
 	err := cmd.Run()
 	if err != nil {
-		logger.Printf("❌ Failed to %s service %s: %v", actionVerb, serviceName, err)
+		logger.Printf("❌ Failed to %s service %s by %s: %v", actionVerb, serviceName, formatUser(query.From), err)
 		msg := tgbotapi.NewMessage(query.Message.Chat.ID, fmt.Sprintf("❌ Failed to %s service %s.", actionVerb, serviceName))
 		if _, err := bot.Send(msg); err != nil {
 			log.Printf("Failed to send error message: %v", err)
 		}
 	} else {
 		successMsg := fmt.Sprintf("Service %s %s successfully.", serviceName, actionPast)
-		logger.Printf("%s", successMsg)
+		logger.Printf("%s (Actioned by %s)", successMsg, formatUser(query.From))
 
 		// Update the original message with new status
 		status := getServiceStatus(serviceName)

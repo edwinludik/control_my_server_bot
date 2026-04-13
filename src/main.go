@@ -87,7 +87,7 @@ func main() {
 						if _, err := bot.Send(msg); err != nil {
 							log.Printf("Failed to send access denied message to User %d: %v", userID, err)
 						}
-						logger.Printf("Unauthorized access attempt from User ID: %d", userID)
+						logger.Printf("Unauthorized access attempt from %s (Chat %d)", formatUser(update.Message.From), update.Message.Chat.ID)
 						return
 					}
 				}
@@ -110,7 +110,7 @@ func main() {
 						if _, err := bot.Request(callback); err != nil {
 							log.Printf("Failed to send access denied callback answer to User %d: %v", userID, err)
 						}
-						logger.Printf("Unauthorized callback attempt from User ID: %d", userID)
+						logger.Printf("Unauthorized callback attempt from %s (Chat %d)", formatUser(update.CallbackQuery.From), update.CallbackQuery.Message.Chat.ID)
 						return
 					}
 				}

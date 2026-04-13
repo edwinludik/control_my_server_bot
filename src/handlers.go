@@ -29,7 +29,7 @@ func handleCommand(bot *tgbotapi.BotAPI, msg *tgbotapi.Message, logger *Telegram
 		isAuthorized = authorized
 	}
 
-	logger.Printf("Command received: /%s from chat %d (User %d)", command, chatID, userID)
+	logger.Printf("Command received: /%s from %s (Chat %d)", command, formatUser(msg.From), chatID)
 
 	helpText := "🤖 *Available Commands:*\n" +
 		"• /ping — Return \"Pong!\"\n" +
@@ -67,7 +67,7 @@ func handleCommand(bot *tgbotapi.BotAPI, msg *tgbotapi.Message, logger *Telegram
 			}
 			return
 		}
-		logger.Printf("🔄 Server restart requested by chat %d (User %d)", chatID, userID)
+		logger.Printf("🔄 Server restart requested by %s (Chat %d)", formatUser(msg.From), chatID)
 
 		msg := tgbotapi.NewMessage(chatID, "⚠️ *Are you sure you want to restart the server?*")
 		msg.ParseMode = tgbotapi.ModeMarkdown
@@ -265,7 +265,7 @@ func handleCommand(bot *tgbotapi.BotAPI, msg *tgbotapi.Message, logger *Telegram
 			if _, err := bot.Send(tgbotapi.NewMessage(chatID, successStr)); err != nil {
 				log.Printf("Failed to send user added message: %v", err)
 			}
-			logger.Printf("👤 User %d added with full permissions by owner", id)
+			logger.Printf("👤 User %d added with full permissions by owner (%s)", id, formatUser(msg.From))
 		}
 
 	case "delete_user":
@@ -293,7 +293,7 @@ func handleCommand(bot *tgbotapi.BotAPI, msg *tgbotapi.Message, logger *Telegram
 			if _, err := bot.Send(tgbotapi.NewMessage(chatID, successStr)); err != nil {
 				log.Printf("Failed to send user deleted message: %v", err)
 			}
-			logger.Printf("👤 User %d deleted by owner", id)
+			logger.Printf("👤 User %d deleted by owner (%s)", id, formatUser(msg.From))
 		}
 
 	case "get_users":
