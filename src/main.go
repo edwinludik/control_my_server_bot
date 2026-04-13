@@ -40,16 +40,16 @@ func main() {
 
 	logger := NewTelegramLogger(bot, cfg.LogChannelID)
 
-	logger.Printf("🚀 Bot started and authorized as @%s", bot.Self.UserName)
+	logger.Printf("Bot started and authorized as @%s", bot.Self.UserName)
 
 	// Log available services on start
 	services, err := getAvailableServices(cfg)
 	if err != nil {
 		logger.Printf("⚠️ Failed to get available services on start: %v", err)
 	} else if len(services) > 0 {
-		logger.Printf("📋 Available Services on startup:\n• %s", strings.Join(services, "\n• "))
+		logger.Printf("Available Services on startup:\n• %s", strings.Join(services, "\n• "))
 	} else {
-		logger.Printf("ℹ️ No available services found on startup.")
+		logger.Printf("⚠️ No available services found on startup.")
 	}
 
 	u := tgbotapi.NewUpdate(loadOffset())

@@ -168,7 +168,7 @@ func handleCallback(bot *tgbotapi.BotAPI, query *tgbotapi.CallbackQuery, logger 
 	}
 
 	// Answer callback to remove loading state
-	callback := tgbotapi.NewCallback(query.ID, fmt.Sprintf("🔄 %s %s...", strings.ToUpper(actionVerb[:1])+actionVerb[1:], serviceName))
+	callback := tgbotapi.NewCallback(query.ID, fmt.Sprintf("%s %s...", strings.ToUpper(actionVerb[:1])+actionVerb[1:], serviceName))
 	if _, err := bot.Request(callback); err != nil {
 		log.Printf("Failed to send callback answer: %v", err)
 	}
@@ -181,7 +181,7 @@ func handleCallback(bot *tgbotapi.BotAPI, query *tgbotapi.CallbackQuery, logger 
 			log.Printf("Failed to send error message: %v", err)
 		}
 	} else {
-		successMsg := fmt.Sprintf("✅ Service %s %s successfully.", serviceName, actionPast)
+		successMsg := fmt.Sprintf("Service %s %s successfully.", serviceName, actionPast)
 		logger.Printf("%s", successMsg)
 
 		// Update the original message with new status
@@ -195,7 +195,7 @@ func handleCallback(bot *tgbotapi.BotAPI, query *tgbotapi.CallbackQuery, logger 
 			statusEmoji = "❌"
 		}
 
-		newText := fmt.Sprintf("📦 *Service:* <code>%s</code>\n*Status:* %s %s\n\n%s", serviceName, statusEmoji, status, successMsg)
+		newText := fmt.Sprintf("*Service:* <code>%s</code>\n*Status:* %s %s\n\n%s", serviceName, statusEmoji, status, successMsg)
 		editMsg := tgbotapi.NewEditMessageText(query.Message.Chat.ID, query.Message.MessageID, newText)
 		editMsg.ParseMode = tgbotapi.ModeHTML
 
