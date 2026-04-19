@@ -13,6 +13,11 @@ version: "1.0"
 profile:
   name: qodana.starter
 
+exclude:
+  - name: All
+    paths:
+      - "src/*_test.go"
+
 #Enable inspections
 #include:
 #  - name: <SomeEnabledInspectionId>
@@ -22,6 +27,7 @@ profile:
 #  - name: <SomeDisabledInspectionId>
 #    paths:
 #      - <path/where/not/run/inspection>
+
 
 #Execute shell command before Qodana execution (Applied in CI/CD pipeline)
 #bootstrap: sh ./prepare-qodana.sh
