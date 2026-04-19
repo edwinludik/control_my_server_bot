@@ -39,6 +39,7 @@ func TestLoadConfig(t *testing.T) {
 			OwnerID:            123456,
 			LogChannelID:       -100123,
 			ControlledServices: []string{"nginx", "docker", "sshd"},
+			Version:            AppVersion,
 		}
 
 		if !reflect.DeepEqual(cfg, expected) {
