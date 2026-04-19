@@ -13,19 +13,13 @@ import (
 func handleCallback(bot *tgbotapi.BotAPI, query *tgbotapi.CallbackQuery, logger *TelegramLogger, cfg *Config) {
 	data := query.Data
 	if data == "close_message" {
-		deleteMsg := tgbotapi.NewDeleteMessage(query.Message.Chat.ID, query.Message.MessageID)
-		if _, err := bot.Send(deleteMsg); err != nil {
-			log.Printf("Failed to delete message: %v", err)
-		}
+		logger.Request(tgbotapi.NewDeleteMessage(query.Message.Chat.ID, query.Message.MessageID))
 		return
 	}
 	if data == "services_list" {
 		services, err := getAvailableServices(cfg)
 		if err != nil {
-			callback := tgbotapi.NewCallback(query.ID, "❌ Failed to list services: "+err.Error())
-			if _, err := bot.Request(callback); err != nil {
-				log.Printf("Failed to send callback answer: %v", err)
-			}
+			logger.Request(tgbotapi.NewCallback(query.ID, "❌ Failed to list services: "+err.Error()))
 			return
 		}
 
@@ -55,41 +49,29 @@ func handleCallback(bot *tgbotapi.BotAPI, query *tgbotapi.CallbackQuery, logger 
 		})
 		editMsg.ReplyMarkup = &tgbotapi.InlineKeyboardMarkup{InlineKeyboard: keyboard}
 
-		if _, err := bot.Send(editMsg); err != nil {
-			log.Printf("Failed to edit message to show services list: %v", err)
-		}
+		logger.Send(editMsg)
 		return
 	}
 	if data == "confirm_restart_server" {
 		logger.Printf("Restarting server confirmed by %s", formatUser(query.From))
-		if _, err := bot.Send(tgbotapi.NewMessage(query.Message.Chat.ID, "Restarting server...")); err != nil {
-			log.Printf("Failed to send restarting server message: %v", err)
-		}
+		logger.SendMessage(query.Message.Chat.ID, "Restarting server...")
 
 		// Answer callback to remove loading state
-		callback := tgbotapi.NewCallback(query.ID, "Restarting server...")
-		if _, err := bot.Request(callback); err != nil {
-			log.Printf("Failed to send callback answer: %v", err)
-		}
+		logger.Request(tgbotapi.NewCallback(query.ID, "Restarting server..."))
 
 		cmd := exec.Command("reboot")
 		if err := cmd.Run(); err != nil {
 			logger.Printf("❌ Failed to restart server: %v", err)
-			if _, err := bot.Send(tgbotapi.NewMessage(query.Message.Chat.ID, "❌ Failed to restart server. See logs for details.")); err != nil {
-				log.Printf("Failed to send restart failure message: %v", err)
-			}
+			logger.SendMessage(query.Message.Chat.ID, "❌ Failed to restart server. See logs for details.")
 		}
 		return
 	}
 	if data == "confirm_update" {
 		logger.Printf("Bot update confirmed by %s", formatUser(query.From))
 		// Answer callback to remove loading state
-		callback := tgbotapi.NewCallback(query.ID, "Updating bot...")
-		if _, err := bot.Request(callback); err != nil {
-			log.Printf("Failed to send callback answer: %v", err)
-		}
+		logger.Request(tgbotapi.NewCallback(query.ID, "Updating bot..."))
 
-		performUpdate(bot, query.Message.Chat.ID, logger, cfg)
+		performUpdate(query.Message.Chat.ID, logger, cfg)
 		return
 	}
 
@@ -102,18 +84,12 @@ func handleCallback(bot *tgbotapi.BotAPI, query *tgbotapi.CallbackQuery, logger 
 	serviceName := parts[1]
 
 	if !serviceNameRegex.MatchString(serviceName) {
-		callback := tgbotapi.NewCallback(query.ID, "❌ Invalid service name.")
-		if _, err := bot.Request(callback); err != nil {
-			log.Printf("Failed to send callback answer: %v", err)
-		}
+		logger.Request(tgbotapi.NewCallback(query.ID, "❌ Invalid service name."))
 		return
 	}
 
 	if len(cfg.ControlledServices) > 0 && !slices.Contains(cfg.ControlledServices, serviceName) {
-		callback := tgbotapi.NewCallback(query.ID, "🚫 Service is not controlled.")
-		if _, err := bot.Request(callback); err != nil {
-			log.Printf("Failed to send callback answer: %v", err)
-		}
+		logger.Request(tgbotapi.NewCallback(query.ID, "🚫 Service is not controlled."))
 		return
 	}
 
@@ -150,9 +126,7 @@ func handleCallback(bot *tgbotapi.BotAPI, query *tgbotapi.CallbackQuery, logger 
 
 		editMsg.ReplyMarkup = &tgbotapi.InlineKeyboardMarkup{InlineKeyboard: keyboard}
 
-		if _, err := bot.Send(editMsg); err != nil {
-			log.Printf("Failed to edit message for service view %s: %v", serviceName, err)
-		}
+		logger.Send(editMsg)
 		return
 	}
 
@@ -179,18 +153,12 @@ func handleCallback(bot *tgbotapi.BotAPI, query *tgbotapi.CallbackQuery, logger 
 	}
 
 	// Answer callback to remove loading state
-	callback := tgbotapi.NewCallback(query.ID, fmt.Sprintf("%s %s...", strings.ToUpper(actionVerb[:1])+actionVerb[1:], serviceName))
-	if _, err := bot.Request(callback); err != nil {
-		log.Printf("Failed to send callback answer: %v", err)
-	}
+	logger.Request(tgbotapi.NewCallback(query.ID, fmt.Sprintf("%s %s...", strings.ToUpper(actionVerb[:1])+actionVerb[1:], serviceName)))
 
 	err := cmd.Run()
 	if err != nil {
 		logger.Printf("❌ Failed to %s service %s by %s: %v", actionVerb, serviceName, formatUser(query.From), err)
-		msg := tgbotapi.NewMessage(query.Message.Chat.ID, fmt.Sprintf("❌ Failed to %s service %s.", actionVerb, serviceName))
-		if _, err := bot.Send(msg); err != nil {
-			log.Printf("Failed to send error message: %v", err)
-		}
+		logger.SendMessage(query.Message.Chat.ID, fmt.Sprintf("❌ Failed to %s service %s.", actionVerb, serviceName))
 	} else {
 		successMsg := fmt.Sprintf("Service %s %s successfully.", serviceName, actionPast)
 		logger.Printf("%s (Actioned by %s)", successMsg, formatUser(query.From))
@@ -232,10 +200,7 @@ func handleCallback(bot *tgbotapi.BotAPI, query *tgbotapi.CallbackQuery, logger 
 		if _, err := bot.Send(editMsg); err != nil {
 			log.Printf("Failed to edit message: %v", err)
 			// If edit fails (e.g. text is the same), at least send a new message
-			msg := tgbotapi.NewMessage(query.Message.Chat.ID, successMsg)
-			if _, err := bot.Send(msg); err != nil {
-				log.Printf("Failed to send success message: %v", err)
-			}
+			logger.SendMessage(query.Message.Chat.ID, successMsg)
 		}
 	}
 }

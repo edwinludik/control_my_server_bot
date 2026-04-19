@@ -83,10 +83,7 @@ func main() {
 						logger.Printf("Error checking authorization for %d: %v", userID, err)
 					}
 					if !authorized {
-						msg := tgbotapi.NewMessage(update.Message.Chat.ID, "Access Denied.")
-						if _, err := bot.Send(msg); err != nil {
-							log.Printf("Failed to send access denied message to User %d: %v", userID, err)
-						}
+						logger.SendMessage(update.Message.Chat.ID, "Access Denied.")
 						logger.Printf("Unauthorized access attempt from %s (Chat %d)", formatUser(update.Message.From), update.Message.Chat.ID)
 						return
 					}
@@ -106,10 +103,7 @@ func main() {
 						logger.Printf("Error checking authorization for %d: %v", userID, err)
 					}
 					if !authorized {
-						callback := tgbotapi.NewCallback(update.CallbackQuery.ID, "Access Denied.")
-						if _, err := bot.Request(callback); err != nil {
-							log.Printf("Failed to send access denied callback answer to User %d: %v", userID, err)
-						}
+						logger.Request(tgbotapi.NewCallback(update.CallbackQuery.ID, "Access Denied."))
 						logger.Printf("Unauthorized callback attempt from %s (Chat %d)", formatUser(update.CallbackQuery.From), update.CallbackQuery.Message.Chat.ID)
 						return
 					}

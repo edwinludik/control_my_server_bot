@@ -22,9 +22,34 @@ func NewTelegramLogger(bot *tgbotapi.BotAPI, channelID int64) *TelegramLogger {
 func (l *TelegramLogger) Printf(format string, v ...any) {
 	msg := fmt.Sprintf(format, v...)
 	log.Print(msg)
-	tgMsg := tgbotapi.NewMessage(l.channelID, msg)
-	if _, err := l.bot.Send(tgMsg); err != nil {
-		log.Printf("Failed to send log message to Telegram: %v (original message: %s)", err, msg)
+	l.SendMessage(l.channelID, msg)
+}
+
+func (l *TelegramLogger) SendMessage(chatID int64, text string) {
+	l.Send(tgbotapi.NewMessage(chatID, text))
+}
+
+func (l *TelegramLogger) SendMarkdown(chatID int64, text string) {
+	msg := tgbotapi.NewMessage(chatID, text)
+	msg.ParseMode = tgbotapi.ModeMarkdown
+	l.Send(msg)
+}
+
+func (l *TelegramLogger) SendHTML(chatID int64, text string) {
+	msg := tgbotapi.NewMessage(chatID, text)
+	msg.ParseMode = tgbotapi.ModeHTML
+	l.Send(msg)
+}
+
+func (l *TelegramLogger) Request(c tgbotapi.Chattable) {
+	if _, err := l.bot.Request(c); err != nil {
+		log.Printf("Failed to send request to Telegram: %v", err)
+	}
+}
+
+func (l *TelegramLogger) Send(c tgbotapi.Chattable) {
+	if _, err := l.bot.Send(c); err != nil {
+		log.Printf("Failed to send message to Telegram: %v", err)
 	}
 }
 

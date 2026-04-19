@@ -2,7 +2,6 @@ package main
 
 import (
 	"fmt"
-	"log"
 	"os/exec"
 	"regexp"
 	"strconv"
@@ -50,22 +49,14 @@ func handleCommand(bot *tgbotapi.BotAPI, msg *tgbotapi.Message, logger *Telegram
 
 	switch command {
 	case "ping":
-		if _, err := bot.Send(tgbotapi.NewMessage(chatID, "Pong!")); err != nil {
-			log.Printf("Failed to send ping response: %v", err)
-		}
+		logger.SendMessage(chatID, "Pong!")
 
 	case "start", "help":
-		msg := tgbotapi.NewMessage(chatID, helpText)
-		msg.ParseMode = tgbotapi.ModeMarkdown
-		if _, err := bot.Send(msg); err != nil {
-			log.Printf("Failed to send help message: %v", err)
-		}
+		logger.SendMarkdown(chatID, helpText)
 
 	case "restart_server":
 		if !isAuthorized {
-			if _, err := bot.Send(tgbotapi.NewMessage(chatID, "🚫 Permission denied.")); err != nil {
-				log.Printf("Failed to send permission denied message: %v", err)
-			}
+			logger.SendMessage(chatID, "🚫 Permission denied.")
 			return
 		}
 		logger.Printf("🔄 Server restart requested by %s (Chat %d)", formatUser(msg.From), chatID)
@@ -78,38 +69,28 @@ func handleCommand(bot *tgbotapi.BotAPI, msg *tgbotapi.Message, logger *Telegram
 				tgbotapi.NewInlineKeyboardButtonData("No, cancel", "close_message"),
 			),
 		)
-		if _, err := bot.Send(msg); err != nil {
-			log.Printf("Failed to send restart confirmation message: %v", err)
-		}
+		logger.Send(msg)
 
 	case "get_update":
 		if !isAuthorized {
-			if _, err := bot.Send(tgbotapi.NewMessage(chatID, "🚫 Permission denied.")); err != nil {
-				log.Printf("Failed to send permission denied message: %v", err)
-			}
+			logger.SendMessage(chatID, "🚫 Permission denied.")
 			return
 		}
-		handleUpdateCommand(bot, chatID, logger, cfg)
+		handleUpdateCommand(chatID, logger, cfg)
 
 	case "get_services":
 		if !isAuthorized {
-			if _, err := bot.Send(tgbotapi.NewMessage(chatID, "🚫 Permission denied.")); err != nil {
-				log.Printf("Failed to send permission denied message: %v", err)
-			}
+			logger.SendMessage(chatID, "🚫 Permission denied.")
 			return
 		}
 		services, err := getAvailableServices(cfg)
 		if err != nil {
-			if _, err := bot.Send(tgbotapi.NewMessage(chatID, "❌ Failed to list services: "+err.Error())); err != nil {
-				log.Printf("Failed to send list services failure message: %v", err)
-			}
+			logger.SendMessage(chatID, "❌ Failed to list services: "+err.Error())
 			return
 		}
 
 		if len(services) == 0 {
-			if _, err := bot.Send(tgbotapi.NewMessage(chatID, "No services found.")); err != nil {
-				log.Printf("Failed to send no services found message: %v", err)
-			}
+			logger.SendMessage(chatID, "No services found.")
 		} else {
 			msgText := "Available Services:"
 			msg := tgbotapi.NewMessage(chatID, msgText)
@@ -135,16 +116,12 @@ func handleCommand(bot *tgbotapi.BotAPI, msg *tgbotapi.Message, logger *Telegram
 			msg.ReplyMarkup = tgbotapi.NewInlineKeyboardMarkup(append(keyboard, []tgbotapi.InlineKeyboardButton{
 				tgbotapi.NewInlineKeyboardButtonData("Close", "close_message"),
 			})...)
-			if _, err := bot.Send(msg); err != nil {
-				log.Printf("Failed to send services list message: %v", err)
-			}
+			logger.Send(msg)
 		}
 
 	case "status":
 		if !isAuthorized {
-			if _, err := bot.Send(tgbotapi.NewMessage(chatID, "🚫 Permission denied.")); err != nil {
-				log.Printf("Failed to send permission denied message: %v", err)
-			}
+			logger.SendMessage(chatID, "🚫 Permission denied.")
 			return
 		}
 		uptime, err := exec.Command("uptime", "-p").Output()
@@ -177,165 +154,103 @@ func handleCommand(bot *tgbotapi.BotAPI, msg *tgbotapi.Message, logger *Telegram
 			statusMsg += "\n\nServices Status:\n" + strings.Join(servicesStatus, "\n")
 		}
 
-		msg := tgbotapi.NewMessage(chatID, statusMsg)
-		msg.ParseMode = tgbotapi.ModeMarkdown
-		if _, err := bot.Send(msg); err != nil {
-			log.Printf("Failed to send status message: %v", err)
-		}
+		logger.SendMarkdown(chatID, statusMsg)
 
 	case "get_cpu_usage":
 		if !isAuthorized {
-			if _, err := bot.Send(tgbotapi.NewMessage(chatID, "🚫 Permission denied.")); err != nil {
-				log.Printf("Failed to send permission denied message: %v", err)
-			}
+			logger.SendMessage(chatID, "🚫 Permission denied.")
 			return
 		}
 		cpuUsage, err := getCPUUsageInfo()
 		if err != nil {
-			if _, err := bot.Send(tgbotapi.NewMessage(chatID, "❌ Failed to get CPU usage: "+err.Error())); err != nil {
-				log.Printf("Failed to send get CPU usage failure message: %v", err)
-			}
+			logger.SendMessage(chatID, "❌ Failed to get CPU usage: "+err.Error())
 			return
 		}
-		msg := tgbotapi.NewMessage(chatID, "CPU Usage:\n"+cpuUsage)
-		msg.ParseMode = tgbotapi.ModeMarkdown
-		if _, err := bot.Send(msg); err != nil {
-			log.Printf("Failed to send CPU usage message: %v", err)
-		}
+		logger.SendMarkdown(chatID, "CPU Usage:\n"+cpuUsage)
 
 	case "get_ram_usage":
 		if !isAuthorized {
-			if _, err := bot.Send(tgbotapi.NewMessage(chatID, "🚫 Permission denied.")); err != nil {
-				log.Printf("Failed to send permission denied message: %v", err)
-			}
+			logger.SendMessage(chatID, "🚫 Permission denied.")
 			return
 		}
 		ramUsage, err := getRAMUsageInfo()
 		if err != nil {
-			if _, err := bot.Send(tgbotapi.NewMessage(chatID, "❌ Failed to get RAM usage: "+err.Error())); err != nil {
-				log.Printf("Failed to send get RAM usage failure message: %v", err)
-			}
+			logger.SendMessage(chatID, "❌ Failed to get RAM usage: "+err.Error())
 			return
 		}
-		msg := tgbotapi.NewMessage(chatID, "RAM Usage:\n"+ramUsage)
-		msg.ParseMode = tgbotapi.ModeMarkdown
-		if _, err := bot.Send(msg); err != nil {
-			log.Printf("Failed to send RAM usage message: %v", err)
-		}
+		logger.SendMarkdown(chatID, "RAM Usage:\n"+ramUsage)
 
 	case "get_disk_usage":
 		if !isAuthorized {
-			if _, err := bot.Send(tgbotapi.NewMessage(chatID, "🚫 Permission denied.")); err != nil {
-				log.Printf("Failed to send permission denied message: %v", err)
-			}
+			logger.SendMessage(chatID, "🚫 Permission denied.")
 			return
 		}
 		diskInfo, err := getDiskSpaceInfo()
 		if err != nil {
-			if _, err := bot.Send(tgbotapi.NewMessage(chatID, "❌ Failed to get disk space: "+err.Error())); err != nil {
-				log.Printf("Failed to send get disk space failure message: %v", err)
-			}
+			logger.SendMessage(chatID, "❌ Failed to get disk space: "+err.Error())
 			return
 		}
-		msg := tgbotapi.NewMessage(chatID, "Free Disk Space:\n"+diskInfo)
-		msg.ParseMode = tgbotapi.ModeMarkdown
-		if _, err := bot.Send(msg); err != nil {
-			log.Printf("Failed to send disk space message: %v", err)
-		}
+		logger.SendMarkdown(chatID, "Free Disk Space:\n"+diskInfo)
 
 	case "add_user":
 		if !isOwner {
-			if _, err := bot.Send(tgbotapi.NewMessage(chatID, "🚫 Only the owner can add users.")); err != nil {
-				log.Printf("Failed to send permission denied message: %v", err)
-			}
+			logger.SendMessage(chatID, "🚫 Only the owner can add users.")
 			return
 		}
 		parts := strings.Fields(args)
 		if len(parts) < 1 {
-			msg := tgbotapi.NewMessage(chatID, "Usage: <code>/add_user <id></code>")
-			msg.ParseMode = tgbotapi.ModeHTML
-			if _, err := bot.Send(msg); err != nil {
-				log.Printf("Failed to send usage message: %v", err)
-			}
+			logger.SendHTML(chatID, "Usage: <code>/add_user <id></code>")
 			return
 		}
 		id, err := strconv.ParseInt(parts[0], 10, 64)
 		if err != nil {
-			if _, err := bot.Send(tgbotapi.NewMessage(chatID, "❌ Invalid user ID.")); err != nil {
-				log.Printf("Failed to send invalid user ID message: %v", err)
-			}
+			logger.SendMessage(chatID, "❌ Invalid user ID.")
 			return
 		}
 		if err := userStore.AddUser(id); err != nil {
-			if _, err := bot.Send(tgbotapi.NewMessage(chatID, "❌ Failed to add user: "+err.Error())); err != nil {
-				log.Printf("Failed to send add user failure message: %v", err)
-			}
+			logger.SendMessage(chatID, "❌ Failed to add user: "+err.Error())
 		} else {
 			successStr := fmt.Sprintf("User %d added with full permissions.", id)
-			if _, err := bot.Send(tgbotapi.NewMessage(chatID, successStr)); err != nil {
-				log.Printf("Failed to send user added message: %v", err)
-			}
+			logger.SendMessage(chatID, successStr)
 			logger.Printf("User %d added with full permissions by owner (%s)", id, formatUser(msg.From))
 		}
 
 	case "delete_user":
 		if !isOwner {
-			if _, err := bot.Send(tgbotapi.NewMessage(chatID, "🚫 Only the owner can delete users.")); err != nil {
-				log.Printf("Failed to send permission denied message: %v", err)
-			}
+			logger.SendMessage(chatID, "🚫 Only the owner can delete users.")
 			return
 		}
 		id, err := strconv.ParseInt(strings.TrimSpace(args), 10, 64)
 		if err != nil {
-			msg := tgbotapi.NewMessage(chatID, "Usage: <code>/delete_user <id></code>")
-			msg.ParseMode = tgbotapi.ModeHTML
-			if _, err := bot.Send(msg); err != nil {
-				log.Printf("Failed to send usage message: %v", err)
-			}
+			logger.SendHTML(chatID, "Usage: <code>/delete_user <id></code>")
 			return
 		}
 		if err := userStore.DeleteUser(id); err != nil {
-			if _, err := bot.Send(tgbotapi.NewMessage(chatID, "❌ Failed to delete user: "+err.Error())); err != nil {
-				log.Printf("Failed to send delete user failure message: %v", err)
-			}
+			logger.SendMessage(chatID, "❌ Failed to delete user: "+err.Error())
 		} else {
 			successStr := fmt.Sprintf("User %d deleted.", id)
-			if _, err := bot.Send(tgbotapi.NewMessage(chatID, successStr)); err != nil {
-				log.Printf("Failed to send user deleted message: %v", err)
-			}
+			logger.SendMessage(chatID, successStr)
 			logger.Printf("User %d deleted by owner (%s)", id, formatUser(msg.From))
 		}
 
 	case "get_users":
 		if !isOwner {
-			if _, err := bot.Send(tgbotapi.NewMessage(chatID, "🚫 Only the owner can list users.")); err != nil {
-				log.Printf("Failed to send permission denied message: %v", err)
-			}
+			logger.SendMessage(chatID, "🚫 Only the owner can list users.")
 			return
 		}
 		users, err := userStore.ListUsers(cfg.OwnerID)
 		if err != nil {
-			if _, err := bot.Send(tgbotapi.NewMessage(chatID, "❌ Failed to list users: "+err.Error())); err != nil {
-				log.Printf("Failed to send list users failure message: %v", err)
-			}
+			logger.SendMessage(chatID, "❌ Failed to list users: "+err.Error())
 			return
 		}
 		if len(users) == 0 {
-			if _, err := bot.Send(tgbotapi.NewMessage(chatID, "No authorized users found.")); err != nil {
-				log.Printf("Failed to send no users found message: %v", err)
-			}
+			logger.SendMessage(chatID, "No authorized users found.")
 		} else {
-			msg := tgbotapi.NewMessage(chatID, "Authorized Users:\n• "+strings.Join(users, "\n• "))
-			msg.ParseMode = tgbotapi.ModeMarkdown
-			if _, err := bot.Send(msg); err != nil {
-				log.Printf("Failed to send users list message: %v", err)
-			}
+			logger.SendMarkdown(chatID, "Authorized Users:\n• "+strings.Join(users, "\n• "))
 		}
 
 	default:
-		if _, err := bot.Send(tgbotapi.NewMessage(chatID, "❓ I don't know that command. Type /help for a list of available commands.")); err != nil {
-			log.Printf("Failed to send unknown command message: %v", err)
-		}
+		logger.SendMessage(chatID, "❓ I don't know that command. Type /help for a list of available commands.")
 	}
 }
 

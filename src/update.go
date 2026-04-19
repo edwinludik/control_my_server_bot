@@ -12,8 +12,6 @@ import (
 	"os/exec"
 	"path/filepath"
 	"strings"
-
-	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
 )
 
 const (
@@ -37,7 +35,7 @@ func checkForUpdate(currentVersion string) (*GitHubRelease, error) {
 	if err != nil {
 		return nil, err
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 
 	if resp.StatusCode != http.StatusOK {
 		return nil, fmt.Errorf("GitHub API returned status: %s", resp.Status)
@@ -62,7 +60,7 @@ func downloadFile(url, dest string) error {
 	if err != nil {
 		return err
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 
 	if resp.StatusCode != http.StatusOK {
 		return fmt.Errorf("failed to download file, status: %s", resp.Status)
@@ -72,7 +70,7 @@ func downloadFile(url, dest string) error {
 	if err != nil {
 		return err
 	}
-	defer out.Close()
+	defer func() { _ = out.Close() }()
 
 	_, err = io.Copy(out, resp.Body)
 	return err
@@ -104,7 +102,7 @@ func verifyChecksum(binaryPath, checksumPath, binaryName string) error {
 	if err != nil {
 		return err
 	}
-	defer f.Close()
+	defer func() { _ = f.Close() }()
 
 	h := sha256.New()
 	if _, err := io.Copy(h, f); err != nil {
@@ -119,36 +117,28 @@ func verifyChecksum(binaryPath, checksumPath, binaryName string) error {
 	return nil
 }
 
-func handleUpdateCommand(bot *tgbotapi.BotAPI, chatID int64, logger *TelegramLogger, cfg *Config) {
+func handleUpdateCommand(chatID int64, logger *TelegramLogger, cfg *Config) {
 	release, err := checkForUpdate(cfg.Version)
 	if err != nil {
 		logger.Printf("Failed to check for updates: %v", err)
-		bot.Send(tgbotapi.NewMessage(chatID, "Failed to check for updates: "+err.Error()))
+		logger.SendMessage(chatID, "Failed to check for updates: "+err.Error())
 		return
 	}
 
 	if release == nil {
-		bot.Send(tgbotapi.NewMessage(chatID, "Bot is already up to date (version "+cfg.Version+")."))
+		logger.SendMessage(chatID, "Bot is already up to date (version "+cfg.Version+").")
 		return
 	}
 
 	msgText := fmt.Sprintf("A new version is available: *%s*\nCurrent version: *%s*\n\nDo you want to update?", release.TagName, cfg.Version)
-	msg := tgbotapi.NewMessage(chatID, msgText)
-	msg.ParseMode = tgbotapi.ModeMarkdown
-	msg.ReplyMarkup = tgbotapi.NewInlineKeyboardMarkup(
-		tgbotapi.NewInlineKeyboardRow(
-			tgbotapi.NewInlineKeyboardButtonData("Yes, update now", "confirm_update"),
-			tgbotapi.NewInlineKeyboardButtonData("No, cancel", "close_message"),
-		),
-	)
-	bot.Send(msg)
+	logger.SendMarkdown(chatID, msgText)
 }
 
-func performUpdate(bot *tgbotapi.BotAPI, chatID int64, logger *TelegramLogger, cfg *Config) {
+func performUpdate(chatID int64, logger *TelegramLogger, cfg *Config) {
 	release, err := checkForUpdate(cfg.Version)
 	if err != nil || release == nil {
 		logger.Printf("Failed to re-verify update before performing: %v", err)
-		bot.Send(tgbotapi.NewMessage(chatID, "Failed to re-verify update."))
+		logger.SendMessage(chatID, "Failed to re-verify update.")
 		return
 	}
 
@@ -156,7 +146,7 @@ func performUpdate(bot *tgbotapi.BotAPI, chatID int64, logger *TelegramLogger, c
 	selfPath, err := os.Executable()
 	if err != nil {
 		logger.Printf("Failed to get executable path: %v", err)
-		bot.Send(tgbotapi.NewMessage(chatID, "Failed to get executable path."))
+		logger.SendMessage(chatID, "Failed to get executable path.")
 		return
 	}
 	dir := filepath.Dir(selfPath)
@@ -165,41 +155,33 @@ func performUpdate(bot *tgbotapi.BotAPI, chatID int64, logger *TelegramLogger, c
 	// 2. Prepare update directory
 	if err := os.MkdirAll(absUpdateDir, 0755); err != nil {
 		logger.Printf("Failed to create update directory %s: %v", absUpdateDir, err)
-		bot.Send(tgbotapi.NewMessage(chatID, "Failed to prepare update directory."))
+		logger.SendMessage(chatID, "Failed to prepare update directory.")
 		return
 	}
 
 	// 3. Find assets (binary and checksums)
-	var binaryURL, checksumURL string
-	for _, asset := range release.Assets {
-		if asset.Name == "checksums.txt" {
-			checksumURL = asset.BrowserDownloadURL
-		}
-		if asset.Name == "control_my_server_bot" {
-			binaryURL = asset.BrowserDownloadURL
-		}
-	}
+	binaryURL, checksumURL := getAssetURLs(release)
 
 	if binaryURL == "" || checksumURL == "" {
 		logger.Printf("Could not find suitable assets in release %s (Binary: %v, Checksum: %v)", release.TagName, binaryURL != "", checksumURL != "")
-		bot.Send(tgbotapi.NewMessage(chatID, "Could not find suitable assets in the release (binary or checksums.txt missing)."))
+		logger.SendMessage(chatID, "Could not find suitable assets in the release (binary or checksums.txt missing).")
 		return
 	}
 
-	bot.Send(tgbotapi.NewMessage(chatID, "Downloading update..."))
+	logger.SendMessage(chatID, "Downloading update...")
 
 	tmpBinary := filepath.Join(absUpdateDir, newBinaryName)
 	tmpChecksum := filepath.Join(absUpdateDir, "checksums.txt")
 
 	if err := downloadFile(binaryURL, tmpBinary); err != nil {
 		logger.Printf("Failed to download binary: %v", err)
-		bot.Send(tgbotapi.NewMessage(chatID, "Failed to download binary."))
+		logger.SendMessage(chatID, "Failed to download binary.")
 		return
 	}
 
 	if err := downloadFile(checksumURL, tmpChecksum); err != nil {
 		logger.Printf("Failed to download checksums: %v", err)
-		bot.Send(tgbotapi.NewMessage(chatID, "Failed to download checksums."))
+		logger.SendMessage(chatID, "Failed to download checksums.")
 		return
 	}
 
@@ -207,25 +189,39 @@ func performUpdate(bot *tgbotapi.BotAPI, chatID int64, logger *TelegramLogger, c
 	binaryNameInAsset := filepath.Base(binaryURL)
 	if err := verifyChecksum(tmpBinary, tmpChecksum, binaryNameInAsset); err != nil {
 		logger.Printf("Checksum verification failed: %v", err)
-		os.Remove(tmpBinary)
-		os.Remove(tmpChecksum)
-		bot.Send(tgbotapi.NewMessage(chatID, "Checksum verification failed."))
+		_ = os.Remove(tmpBinary)
+		_ = os.Remove(tmpChecksum)
+		logger.SendMessage(chatID, "Checksum verification failed.")
 		return
 	}
 
 	// Cleanup checksum file as it's no longer needed
-	os.Remove(tmpChecksum)
+	_ = os.Remove(tmpChecksum)
 
-	bot.Send(tgbotapi.NewMessage(chatID, "✅ Update downloaded successfully. Restarting to apply..."))
+	logger.SendMessage(chatID, "✅ Update downloaded successfully. Restarting to apply...")
 	logger.Printf("🔄 Update downloaded. Version %s -> %s. Restarting service to apply.", cfg.Version, release.TagName)
 
 	// 5. Restart the service
-	go func() {
-		log.Println("Self-restarting via systemctl...")
-		cmd := exec.Command("sudo", "systemctl", "restart", "control_my_server_bot")
-		if err := cmd.Start(); err != nil {
-			log.Printf("Failed to trigger restart: %v", err)
-			os.Exit(0)
+	go restartService()
+}
+
+func getAssetURLs(release *GitHubRelease) (binaryURL, checksumURL string) {
+	for _, asset := range release.Assets {
+		switch asset.Name {
+		case "checksums.txt":
+			checksumURL = asset.BrowserDownloadURL
+		case "control_my_server_bot":
+			binaryURL = asset.BrowserDownloadURL
 		}
-	}()
+	}
+	return
+}
+
+func restartService() {
+	log.Println("Self-restarting via systemctl...")
+	cmd := exec.Command("sudo", "systemctl", "restart", "control_my_server_bot")
+	if err := cmd.Start(); err != nil {
+		log.Printf("Failed to trigger restart: %v", err)
+		os.Exit(0)
+	}
 }
