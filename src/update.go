@@ -17,7 +17,6 @@ import (
 
 const (
 	latestReleaseURL = "https://api.github.com/repos/edwinludik/control_my_server_bot/releases/latest"
-	updateDir        = "updates"
 	newBinaryName    = "control_my_server_bot.new"
 	checksumFileName = "checksums.txt"
 )
@@ -83,10 +82,32 @@ func downloadFile(urlStr string, root *os.Root, fileName string) error {
 	if err != nil {
 		return err
 	}
-	defer func() { _ = out.Close() }()
 
-	_, err = io.Copy(out, resp.Body)
-	return err
+	if _, err = io.Copy(out, resp.Body); err != nil {
+		_ = out.Close()
+		return err
+	}
+	// Close explicitly before reopening for chmod
+	_ = out.Close()
+
+	// Ensure the binary is executable
+	f, err := root.Open(fileName)
+	if err != nil {
+		return err
+	}
+	defer func() { _ = f.Close() }()
+
+	if info, err := f.Stat(); err == nil {
+		// Only chmod if it is likely the binary (has no extension or is the bot's name)
+		if !strings.Contains(fileName, ".") {
+			if err := f.Chmod(0700); err != nil {
+				log.Printf("Warning: failed to chmod new binary: %v", err)
+			}
+		}
+		_ = info
+	}
+
+	return nil
 }
 
 func verifyChecksum(root *os.Root, binaryFileName, checksumFileName, originalBinaryName string) error {
@@ -163,20 +184,12 @@ func performUpdate(chatID int64, logger *TelegramLogger, cfg *Config) {
 		return
 	}
 	dir := filepath.Dir(selfPath)
-	absUpdateDir := filepath.Join(dir, updateDir)
 
-	// 2. Prepare update directory
-	if err := os.MkdirAll(absUpdateDir, 0750); err != nil {
-		logger.Printf("Failed to create update directory %s: %v", absUpdateDir, err)
-		logger.SendMessage(chatID, "Failed to prepare update directory.")
-		return
-	}
-
-	// Open the update directory as a secure root (Go 1.24+)
-	root, err := os.OpenRoot(absUpdateDir)
+	// Open the application directory as a secure root (Go 1.24+)
+	root, err := os.OpenRoot(dir)
 	if err != nil {
-		logger.Printf("Failed to open update root: %v", err)
-		logger.SendMessage(chatID, "Failed to prepare secure update directory.")
+		logger.Printf("Failed to open root directory %s: %v", dir, err)
+		logger.SendMessage(chatID, "Failed to prepare secure update environment.")
 		return
 	}
 	defer func() { _ = root.Close() }()
