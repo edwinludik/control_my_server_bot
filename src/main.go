@@ -3,8 +3,10 @@ package main
 import (
 	"log"
 	"os"
+	"os/signal"
 	"strconv"
 	"strings"
+	"syscall"
 
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
 	"github.com/joho/godotenv"
@@ -40,6 +42,15 @@ func main() {
 
 	logger := NewTelegramLogger(bot, cfg.LogChannelID)
 
+	// Send start message to all admins
+	admins := []int64{cfg.OwnerID}
+	if additionalAdmins, err := userStore.ListUserIDs(); err == nil {
+		admins = append(admins, additionalAdmins...)
+	}
+	for _, adminID := range admins {
+		logger.SendMessage(adminID, "Server started")
+	}
+
 	logger.Printf("Bot started and authorized as @%s", bot.Self.UserName)
 
 	// Log available services on start
@@ -57,61 +68,77 @@ func main() {
 
 	updates := bot.GetUpdatesChan(u)
 
-	for update := range updates {
-		saveOffset(update.UpdateID + 1)
-		func() {
-			defer func() {
-				if r := recover(); r != nil {
-					log.Printf("Recovered from panic in update loop: %v", r)
+	// Handle graceful shutdown
+	sigChan := make(chan os.Signal, 1)
+	signal.Notify(sigChan, syscall.SIGINT, syscall.SIGTERM)
+
+	for {
+		select {
+		case sig := <-sigChan:
+			log.Printf("Received signal: %v. Shutting down...", sig)
+			for _, adminID := range admins {
+				logger.SendMessage(adminID, "🛑 Server shutting down")
+			}
+			return
+		case update, ok := <-updates:
+			if !ok {
+				return
+			}
+			saveOffset(update.UpdateID + 1)
+			func() {
+				defer func() {
+					if r := recover(); r != nil {
+						log.Printf("Recovered from panic in update loop: %v", r)
+					}
+				}()
+
+				if update.Message != nil {
+					if !update.Message.IsCommand() { // ignore any non-command Messages
+						return
+					}
+
+					if update.Message.From == nil {
+						return
+					}
+					userID := update.Message.From.ID
+
+					// Check authorization: Owner or exists in userStore
+					if userID != cfg.OwnerID {
+						authorized, err := userStore.UserExists(userID)
+						if err != nil {
+							logger.Printf("Error checking authorization for %d: %v", userID, err)
+						}
+						if !authorized {
+							logger.SendMessage(update.Message.Chat.ID, "Access Denied.")
+							logger.Printf("Unauthorized access attempt from %s (Chat %d)", formatUser(update.Message.From), update.Message.Chat.ID)
+							return
+						}
+					}
+
+					handleCommand(update.Message, logger, cfg, userStore)
+				} else if update.CallbackQuery != nil {
+					if update.CallbackQuery.From == nil {
+						return
+					}
+					userID := update.CallbackQuery.From.ID
+
+					// Check authorization for callbacks
+					if userID != cfg.OwnerID {
+						authorized, err := userStore.UserExists(userID)
+						if err != nil {
+							logger.Printf("Error checking authorization for %d: %v", userID, err)
+						}
+						if !authorized {
+							logger.Request(tgbotapi.NewCallback(update.CallbackQuery.ID, "Access Denied."))
+							logger.Printf("Unauthorized callback attempt from %s (Chat %d)", formatUser(update.CallbackQuery.From), update.CallbackQuery.Message.Chat.ID)
+							return
+						}
+					}
+
+					handleCallback(bot, update.CallbackQuery, logger, cfg)
 				}
 			}()
-
-			if update.Message != nil {
-				if !update.Message.IsCommand() { // ignore any non-command Messages
-					return
-				}
-
-				if update.Message.From == nil {
-					return
-				}
-				userID := update.Message.From.ID
-
-				// Check authorization: Owner or exists in userStore
-				if userID != cfg.OwnerID {
-					authorized, err := userStore.UserExists(userID)
-					if err != nil {
-						logger.Printf("Error checking authorization for %d: %v", userID, err)
-					}
-					if !authorized {
-						logger.SendMessage(update.Message.Chat.ID, "Access Denied.")
-						logger.Printf("Unauthorized access attempt from %s (Chat %d)", formatUser(update.Message.From), update.Message.Chat.ID)
-						return
-					}
-				}
-
-				handleCommand(update.Message, logger, cfg, userStore)
-			} else if update.CallbackQuery != nil {
-				if update.CallbackQuery.From == nil {
-					return
-				}
-				userID := update.CallbackQuery.From.ID
-
-				// Check authorization for callbacks
-				if userID != cfg.OwnerID {
-					authorized, err := userStore.UserExists(userID)
-					if err != nil {
-						logger.Printf("Error checking authorization for %d: %v", userID, err)
-					}
-					if !authorized {
-						logger.Request(tgbotapi.NewCallback(update.CallbackQuery.ID, "Access Denied."))
-						logger.Printf("Unauthorized callback attempt from %s (Chat %d)", formatUser(update.CallbackQuery.From), update.CallbackQuery.Message.Chat.ID)
-						return
-					}
-				}
-
-				handleCallback(bot, update.CallbackQuery, logger, cfg)
-			}
-		}()
+		}
 	}
 }
 

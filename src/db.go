@@ -105,6 +105,30 @@ func (s *UserStore) ListUsers(ownerID int64) ([]string, error) {
 	return result, nil
 }
 
+func (s *UserStore) ListUserIDs() ([]int64, error) {
+	rows, err := s.db.Query("SELECT id FROM users")
+	if err != nil {
+		return nil, err
+	}
+	defer func() {
+		_ = rows.Close()
+	}()
+
+	var ids []int64
+	for rows.Next() {
+		var id int64
+		if err := rows.Scan(&id); err != nil {
+			return nil, err
+		}
+		ids = append(ids, id)
+	}
+
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return ids, nil
+}
+
 func (s *UserStore) Close() error {
 	return s.db.Close()
 }
