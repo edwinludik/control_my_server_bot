@@ -6,6 +6,7 @@ import (
 	"os/exec"
 	"slices"
 	"strings"
+	"time"
 
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
 )
@@ -54,7 +55,14 @@ func handleCallback(bot *tgbotapi.BotAPI, query *tgbotapi.CallbackQuery, logger 
 	}
 	if data == "confirm_restart_server" {
 		logger.Printf("Restarting server confirmed by %s", formatUser(query.From))
-		logger.SendMessage(query.Message.Chat.ID, "Restarting server...")
+
+		// Update message to remove buttons and show confirmation
+		now := time.Now().Format("15:04:05")
+		msgText := fmt.Sprintf("⚠️ *Are you sure you want to restart the server?*\n\n✅ Action confirmed at %s", now)
+		editMsg := tgbotapi.NewEditMessageText(query.Message.Chat.ID, query.Message.MessageID, msgText)
+		editMsg.ParseMode = tgbotapi.ModeMarkdown
+		editMsg.ReplyMarkup = nil
+		logger.Send(editMsg)
 
 		// Answer callback to remove loading state
 		logger.Request(tgbotapi.NewCallback(query.ID, "Restarting server..."))
