@@ -64,6 +64,7 @@ jobs:
         with:
           name: packages
           path: |
+            control_my_server_bot
             *.deb
             *.rpm
             *.pkg.tar.zst
@@ -73,6 +74,7 @@ jobs:
         uses: softprops/action-gh-release@v2
         with:
           files: |
+            control_my_server_bot
             *.deb
             *.rpm
             *.pkg.tar.zst
