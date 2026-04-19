@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"log"
 	"os/exec"
-	"slices"
 	"strings"
 	"time"
 
@@ -30,6 +29,9 @@ func handleCallback(bot *tgbotapi.BotAPI, query *tgbotapi.CallbackQuery, logger 
 
 		var keyboard [][]tgbotapi.InlineKeyboardButton
 		for _, service := range services {
+			if !isServiceAllowed(service, cfg) {
+				continue
+			}
 			status := getServiceStatus(service)
 			statusEmoji := "❓"
 			if strings.Contains(status, "active (running)") {
@@ -91,13 +93,8 @@ func handleCallback(bot *tgbotapi.BotAPI, query *tgbotapi.CallbackQuery, logger 
 	action := parts[0]
 	serviceName := parts[1]
 
-	if !serviceNameRegex.MatchString(serviceName) {
-		logger.Request(tgbotapi.NewCallback(query.ID, "❌ Invalid service name."))
-		return
-	}
-
-	if len(cfg.ControlledServices) > 0 && !slices.Contains(cfg.ControlledServices, serviceName) {
-		logger.Request(tgbotapi.NewCallback(query.ID, "🚫 Service is not controlled."))
+	if !isServiceAllowed(serviceName, cfg) {
+		logger.Request(tgbotapi.NewCallback(query.ID, "❌ Unauthorized or invalid service."))
 		return
 	}
 

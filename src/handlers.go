@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os/exec"
 	"regexp"
+	"slices"
 	"strconv"
 	"strings"
 
@@ -11,6 +12,23 @@ import (
 )
 
 var serviceNameRegex = regexp.MustCompile(`^[a-zA-Z0-9\-_.]+$`)
+
+func isServiceAllowed(serviceName string, cfg *Config) bool {
+	// 1. Basic regex check to prevent command injection
+	if !serviceNameRegex.MatchString(serviceName) {
+		return false
+	}
+	// 2. Check if it's in the whitelist (if any)
+	if len(cfg.ControlledServices) > 0 {
+		return slices.Contains(cfg.ControlledServices, serviceName)
+	}
+	// 3. Final check: Does it exist in the system?
+	available, err := getAvailableServices(cfg)
+	if err != nil {
+		return false
+	}
+	return slices.Contains(available, serviceName)
+}
 
 func handleCommand(msg *tgbotapi.Message, logger *TelegramLogger, cfg *Config, userStore *UserStore) {
 	chatID := msg.Chat.ID
@@ -98,6 +116,9 @@ func handleCommand(msg *tgbotapi.Message, logger *TelegramLogger, cfg *Config, u
 
 			var keyboard [][]tgbotapi.InlineKeyboardButton
 			for _, service := range services {
+				if !isServiceAllowed(service, cfg) {
+					continue
+				}
 				status := getServiceStatus(service)
 				statusEmoji := "❓"
 				if strings.Contains(status, "active (running)") {
@@ -113,9 +134,10 @@ func handleCommand(msg *tgbotapi.Message, logger *TelegramLogger, cfg *Config, u
 				keyboard = append(keyboard, row)
 			}
 
-			msg.ReplyMarkup = tgbotapi.NewInlineKeyboardMarkup(append(keyboard, []tgbotapi.InlineKeyboardButton{
-				tgbotapi.NewInlineKeyboardButtonData("Close", "close_message"),
-			})...)
+			keyboard = append(keyboard, []tgbotapi.InlineKeyboardButton{
+				tgbotapi.NewInlineKeyboardButtonData("❌ Close", "close_message"),
+			})
+			msg.ReplyMarkup = tgbotapi.NewInlineKeyboardMarkup(keyboard...)
 			logger.Send(msg)
 		}
 
@@ -140,6 +162,9 @@ func handleCommand(msg *tgbotapi.Message, logger *TelegramLogger, cfg *Config, u
 		if err == nil && len(services) > 0 {
 			var servicesStatus []string
 			for _, service := range services {
+				if !isServiceAllowed(service, cfg) {
+					continue
+				}
 				status := getServiceStatus(service)
 				statusEmoji := "❓"
 				if strings.Contains(status, "active (running)") {
@@ -151,7 +176,9 @@ func handleCommand(msg *tgbotapi.Message, logger *TelegramLogger, cfg *Config, u
 				}
 				servicesStatus = append(servicesStatus, fmt.Sprintf("%s %s", statusEmoji, service))
 			}
-			statusMsg += "\n\nServices Status:\n" + strings.Join(servicesStatus, "\n")
+			if len(servicesStatus) > 0 {
+				statusMsg += "\n\nServices Status:\n" + strings.Join(servicesStatus, "\n")
+			}
 		}
 
 		logger.SendMarkdown(chatID, statusMsg)

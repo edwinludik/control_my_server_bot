@@ -8,6 +8,7 @@ import (
 	"io"
 	"log"
 	"net/http"
+	"net/url"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -15,10 +16,10 @@ import (
 )
 
 const (
-	githubOwner   = "edwinludik"
-	githubRepo    = "control_my_server_bot"
-	updateDir     = "updates"
-	newBinaryName = "control_my_server_bot.new"
+	latestReleaseURL = "https://api.github.com/repos/edwinludik/control_my_server_bot/releases/latest"
+	updateDir        = "updates"
+	newBinaryName    = "control_my_server_bot.new"
+	checksumFileName = "checksums.txt"
 )
 
 type GitHubRelease struct {
@@ -30,8 +31,7 @@ type GitHubRelease struct {
 }
 
 func checkForUpdate(currentVersion string) (*GitHubRelease, error) {
-	url := fmt.Sprintf("https://api.github.com/repos/%s/%s/releases/latest", githubOwner, githubRepo)
-	resp, err := http.Get(url)
+	resp, err := http.Get(latestReleaseURL)
 	if err != nil {
 		return nil, err
 	}
@@ -55,8 +55,21 @@ func checkForUpdate(currentVersion string) (*GitHubRelease, error) {
 	return nil, nil // Already up to date
 }
 
-func downloadFile(url, dest string) error {
-	resp, err := http.Get(url)
+func downloadFile(urlStr string, root *os.Root, fileName string) error {
+	u, err := url.Parse(urlStr)
+	if err != nil {
+		return fmt.Errorf("invalid URL: %w", err)
+	}
+	// Validation: Only allow HTTPS and trusted GitHub hosts
+	if u.Scheme != "https" {
+		return fmt.Errorf("unsupported protocol: %s", u.Scheme)
+	}
+	if u.Host != "github.com" && u.Host != "objects.githubusercontent.com" {
+		return fmt.Errorf("untrusted host: %s", u.Host)
+	}
+
+	// #nosec G107
+	resp, err := http.Get(urlStr)
 	if err != nil {
 		return err
 	}
@@ -66,7 +79,7 @@ func downloadFile(url, dest string) error {
 		return fmt.Errorf("failed to download file, status: %s", resp.Status)
 	}
 
-	out, err := os.Create(dest)
+	out, err := root.Create(fileName)
 	if err != nil {
 		return err
 	}
@@ -76,8 +89,8 @@ func downloadFile(url, dest string) error {
 	return err
 }
 
-func verifyChecksum(binaryPath, checksumPath, binaryName string) error {
-	checksumData, err := os.ReadFile(checksumPath)
+func verifyChecksum(root *os.Root, binaryFileName, checksumFileName, originalBinaryName string) error {
+	checksumData, err := root.ReadFile(checksumFileName)
 	if err != nil {
 		return fmt.Errorf("failed to read checksum file: %w", err)
 	}
@@ -85,7 +98,7 @@ func verifyChecksum(binaryPath, checksumPath, binaryName string) error {
 	var expectedChecksum string
 	lines := strings.Split(string(checksumData), "\n")
 	for _, line := range lines {
-		if strings.Contains(line, binaryName) {
+		if strings.Contains(line, originalBinaryName) {
 			parts := strings.Fields(line)
 			if len(parts) >= 1 {
 				expectedChecksum = parts[0]
@@ -95,10 +108,10 @@ func verifyChecksum(binaryPath, checksumPath, binaryName string) error {
 	}
 
 	if expectedChecksum == "" {
-		return fmt.Errorf("checksum for %s not found in %s", binaryName, checksumPath)
+		return fmt.Errorf("checksum for %s not found in %s", originalBinaryName, checksumFileName)
 	}
 
-	f, err := os.Open(binaryPath)
+	f, err := root.Open(binaryFileName)
 	if err != nil {
 		return err
 	}
@@ -153,11 +166,20 @@ func performUpdate(chatID int64, logger *TelegramLogger, cfg *Config) {
 	absUpdateDir := filepath.Join(dir, updateDir)
 
 	// 2. Prepare update directory
-	if err := os.MkdirAll(absUpdateDir, 0755); err != nil {
+	if err := os.MkdirAll(absUpdateDir, 0750); err != nil {
 		logger.Printf("Failed to create update directory %s: %v", absUpdateDir, err)
 		logger.SendMessage(chatID, "Failed to prepare update directory.")
 		return
 	}
+
+	// Open the update directory as a secure root (Go 1.24+)
+	root, err := os.OpenRoot(absUpdateDir)
+	if err != nil {
+		logger.Printf("Failed to open update root: %v", err)
+		logger.SendMessage(chatID, "Failed to prepare secure update directory.")
+		return
+	}
+	defer func() { _ = root.Close() }()
 
 	// 3. Find assets (binary and checksums)
 	binaryURL, checksumURL := getAssetURLs(release)
@@ -170,16 +192,13 @@ func performUpdate(chatID int64, logger *TelegramLogger, cfg *Config) {
 
 	logger.SendMessage(chatID, "Downloading update...")
 
-	tmpBinary := filepath.Join(absUpdateDir, newBinaryName)
-	tmpChecksum := filepath.Join(absUpdateDir, "checksums.txt")
-
-	if err := downloadFile(binaryURL, tmpBinary); err != nil {
+	if err := downloadFile(binaryURL, root, newBinaryName); err != nil {
 		logger.Printf("Failed to download binary: %v", err)
 		logger.SendMessage(chatID, "Failed to download binary.")
 		return
 	}
 
-	if err := downloadFile(checksumURL, tmpChecksum); err != nil {
+	if err := downloadFile(checksumURL, root, checksumFileName); err != nil {
 		logger.Printf("Failed to download checksums: %v", err)
 		logger.SendMessage(chatID, "Failed to download checksums.")
 		return
@@ -187,16 +206,16 @@ func performUpdate(chatID int64, logger *TelegramLogger, cfg *Config) {
 
 	// 4. Verify checksum
 	binaryNameInAsset := filepath.Base(binaryURL)
-	if err := verifyChecksum(tmpBinary, tmpChecksum, binaryNameInAsset); err != nil {
+	if err := verifyChecksum(root, newBinaryName, checksumFileName, binaryNameInAsset); err != nil {
 		logger.Printf("Checksum verification failed: %v", err)
-		_ = os.Remove(tmpBinary)
-		_ = os.Remove(tmpChecksum)
+		_ = root.Remove(newBinaryName)
+		_ = root.Remove(checksumFileName)
 		logger.SendMessage(chatID, "Checksum verification failed.")
 		return
 	}
 
 	// Cleanup checksum file as it's no longer needed
-	_ = os.Remove(tmpChecksum)
+	_ = root.Remove(checksumFileName)
 
 	logger.SendMessage(chatID, "✅ Update downloaded successfully. Restarting to apply...")
 	logger.Printf("Update downloaded. Version %s -> %s. Restarting service to apply.", cfg.Version, release.TagName)
