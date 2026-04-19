@@ -3,7 +3,7 @@ set -e
 
 APP_DIR="/opt/control_my_server_bot"
 APP_NAME="control_my_server_bot"
-NEW_BINARY="${UPDATE_DIR}/${APP_NAME}.new"
+NEW_BINARY="${APP_DIR}/${APP_NAME}.new"
 OLD_BINARY="${APP_DIR}/${APP_NAME}.old"
 APP_BINARY="${APP_DIR}/${APP_NAME}"
 
@@ -21,7 +21,7 @@ fi
 
 # Move the new binary to replace the current one
 if mv "$NEW_BINARY" "$APP_BINARY"; then
-    chmod 600 "$APP_BINARY"
+    chmod 700 "$APP_BINARY"
     echo "Update applied successfully."
 else
     echo "Failed to apply update, restoring backup..."
