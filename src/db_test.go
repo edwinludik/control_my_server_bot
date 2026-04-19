@@ -4,6 +4,7 @@ import (
 	"testing"
 )
 
+//goland:noinspection ALL
 func TestUserStore(t *testing.T) {
 	store, err := NewUserStoreWithDB(":memory:")
 	if err != nil {

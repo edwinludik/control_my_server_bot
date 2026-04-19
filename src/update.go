@@ -199,7 +199,7 @@ func performUpdate(chatID int64, logger *TelegramLogger, cfg *Config) {
 	_ = os.Remove(tmpChecksum)
 
 	logger.SendMessage(chatID, "✅ Update downloaded successfully. Restarting to apply...")
-	logger.Printf("🔄 Update downloaded. Version %s -> %s. Restarting service to apply.", cfg.Version, release.TagName)
+	logger.Printf("Update downloaded. Version %s -> %s. Restarting service to apply.", cfg.Version, release.TagName)
 
 	// 5. Restart the service
 	go restartService()

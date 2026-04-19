@@ -59,7 +59,7 @@ func handleCommand(msg *tgbotapi.Message, logger *TelegramLogger, cfg *Config, u
 			logger.SendMessage(chatID, "🚫 Permission denied.")
 			return
 		}
-		logger.Printf("🔄 Server restart requested by %s (Chat %d)", formatUser(msg.From), chatID)
+		logger.Printf("Server restart requested by %s (Chat %d)", formatUser(msg.From), chatID)
 
 		msg := tgbotapi.NewMessage(chatID, "⚠️ *Are you sure you want to restart the server?*")
 		msg.ParseMode = tgbotapi.ModeMarkdown
