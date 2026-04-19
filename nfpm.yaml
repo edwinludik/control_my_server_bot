@@ -30,6 +30,10 @@ contents:
   - src: .env.example
     dst: /opt/control_my_server_bot/.env
     type: config
+  - src: apply_update.sh
+    dst: /opt/control_my_server_bot/apply_update.sh
+    file_info:
+      mode: 0600
 
 scripts:
   postinstall: scripts/postinstall.sh

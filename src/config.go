@@ -12,9 +12,11 @@ type Config struct {
 	OwnerID            int64
 	LogChannelID       int64
 	ControlledServices []string
+	Version            string
 }
 
 func loadConfig() (*Config, error) {
+	version := "1.1.5" // Default version, should match nfpm.yaml
 	token := os.Getenv("TELEGRAM_BOT_TOKEN")
 	if token == "" {
 		return nil, fmt.Errorf("TELEGRAM_BOT_TOKEN environment variable not set")
@@ -64,5 +66,6 @@ func loadConfig() (*Config, error) {
 		OwnerID:            ownerID,
 		LogChannelID:       logChannelID,
 		ControlledServices: controlledServices,
+		Version:            version,
 	}, nil
 }

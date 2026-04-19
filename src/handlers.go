@@ -38,6 +38,7 @@ func handleCommand(bot *tgbotapi.BotAPI, msg *tgbotapi.Message, logger *Telegram
 		"• /get\\_ram\\_usage — Show current RAM usage\n" +
 		"• /get\\_disk\\_usage — Show free disk space on all drives\n" +
 		"• /get\\_services — List available services\n" +
+		"• /get\\_update — Check for bot updates\n" +
 		"• /restart\\_server — Reboot the server"
 
 	if isOwner {
@@ -80,6 +81,15 @@ func handleCommand(bot *tgbotapi.BotAPI, msg *tgbotapi.Message, logger *Telegram
 		if _, err := bot.Send(msg); err != nil {
 			log.Printf("Failed to send restart confirmation message: %v", err)
 		}
+
+	case "get_update":
+		if !isAuthorized {
+			if _, err := bot.Send(tgbotapi.NewMessage(chatID, "🚫 Permission denied.")); err != nil {
+				log.Printf("Failed to send permission denied message: %v", err)
+			}
+			return
+		}
+		handleUpdateCommand(bot, chatID, logger, cfg)
 
 	case "get_services":
 		if !isAuthorized {

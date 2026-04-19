@@ -81,6 +81,17 @@ func handleCallback(bot *tgbotapi.BotAPI, query *tgbotapi.CallbackQuery, logger 
 		}
 		return
 	}
+	if data == "confirm_update" {
+		logger.Printf("Bot update confirmed by %s", formatUser(query.From))
+		// Answer callback to remove loading state
+		callback := tgbotapi.NewCallback(query.ID, "Updating bot...")
+		if _, err := bot.Request(callback); err != nil {
+			log.Printf("Failed to send callback answer: %v", err)
+		}
+
+		performUpdate(bot, query.Message.Chat.ID, logger, cfg)
+		return
+	}
 
 	parts := strings.SplitN(data, ":", 2)
 	if len(parts) != 2 {
