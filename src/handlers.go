@@ -12,7 +12,7 @@ import (
 
 var serviceNameRegex = regexp.MustCompile(`^[a-zA-Z0-9\-_.]+$`)
 
-func handleCommand(bot *tgbotapi.BotAPI, msg *tgbotapi.Message, logger *TelegramLogger, cfg *Config, userStore *UserStore) {
+func handleCommand(msg *tgbotapi.Message, logger *TelegramLogger, cfg *Config, userStore *UserStore) {
 	chatID := msg.Chat.ID
 	userID := msg.From.ID
 	command := msg.Command()

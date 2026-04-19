@@ -89,7 +89,7 @@ func main() {
 					}
 				}
 
-				handleCommand(bot, update.Message, logger, cfg, userStore)
+				handleCommand(update.Message, logger, cfg, userStore)
 			} else if update.CallbackQuery != nil {
 				if update.CallbackQuery.From == nil {
 					return
