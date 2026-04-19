@@ -6,6 +6,7 @@ import (
 	"testing"
 )
 
+//goland:noinspection ALL
 func TestLoadConfig(t *testing.T) {
 	// Backup original env vars
 	vars := []string{"TELEGRAM_BOT_TOKEN", "TELEGRAM_OWNER_ID", "TELEGRAM_LOG_CHANNEL_ID", "CONTROLLED_SERVICES"}
