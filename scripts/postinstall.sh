@@ -45,7 +45,12 @@ fi
 if command -v systemctl >/dev/null 2>&1; then
     systemctl daemon-reload
     systemctl enable "$SERVICE_NAME"
-    systemctl start "$SERVICE_NAME" || true
+    if [ -f "$INSTALL_DIR/.env" ]; then
+        echo "Starting $SERVICE_NAME..."
+        systemctl start "$SERVICE_NAME" || true
+    else
+        echo "Skipping service start: $INSTALL_DIR/.env not found."
+    fi
 fi
 
 echo "Control My Server Bot installed and configured as a service."
