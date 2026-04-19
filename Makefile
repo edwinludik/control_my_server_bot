@@ -1,22 +1,23 @@
 BINARY_NAME=control_my_server_bot
-VERSION=1.1.5
+VERSION=$(shell cat VERSION)
 ARCH=amd64
+LDFLAGS=-ldflags "-X main.AppVersion=$(VERSION)"
 
 .PHONY: build-linux
 build-linux:
-	GOOS=linux GOARCH=$(ARCH) go build -o $(BINARY_NAME) ./src
+	GOOS=linux GOARCH=$(ARCH) go build $(LDFLAGS) -o $(BINARY_NAME) ./src
 
 .PHONY: package-deb
 package-deb: build-linux
-	nfpm pkg --packager deb --target .
+	VERSION=$(VERSION) nfpm pkg --packager deb --target .
 
 .PHONY: package-rpm
 package-rpm: build-linux
-	nfpm pkg --packager rpm --target .
+	VERSION=$(VERSION) nfpm pkg --packager rpm --target .
 
 .PHONY: package-arch
 package-arch: build-linux
-	nfpm pkg --packager archlinux --target .
+	VERSION=$(VERSION) nfpm pkg --packager archlinux --target .
 
 .PHONY: packages
 packages: package-deb package-rpm package-arch

@@ -7,6 +7,8 @@ import (
 	"strings"
 )
 
+var AppVersion = "development"
+
 type Config struct {
 	Token              string
 	OwnerID            int64
@@ -16,7 +18,7 @@ type Config struct {
 }
 
 func loadConfig() (*Config, error) {
-	version := "1.1.5" // Default version, should match nfpm.yaml
+	version := AppVersion
 	token := os.Getenv("TELEGRAM_BOT_TOKEN")
 	if token == "" {
 		return nil, fmt.Errorf("TELEGRAM_BOT_TOKEN environment variable not set")

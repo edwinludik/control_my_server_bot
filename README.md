@@ -119,9 +119,9 @@ For a cleaner installation, you can build and install a package for your specifi
 **Installing the package:**
 1. Copy the generated package file to your server.
 2. Install it:
-   - **Debian/Ubuntu**: `sudo dpkg -i control_my_server_bot_1.1.5_amd64.deb`
-   - **RedHat/CentOS/Fedora**: `sudo rpm -i control_my_server_bot-1.1.5.x86_64.rpm`
-   - **Arch Linux**: `sudo pacman -U control_my_server_bot-1.1.5-1-x86_64.pkg.tar.zst`
+   - **Debian/Ubuntu**: `sudo dpkg -i control_my_server_bot_*.deb`
+   - **RedHat/CentOS/Fedora**: `sudo rpm -i control_my_server_bot-*.rpm`
+   - **Arch Linux**: `sudo pacman -U control_my_server_bot-*.pkg.tar.zst`
 3. Configure the bot:
    Edit `/opt/control_my_server_bot/.env` with your credentials.
 4. Restart the service:
