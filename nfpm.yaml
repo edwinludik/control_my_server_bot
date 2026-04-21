@@ -33,7 +33,7 @@ contents:
   - src: apply_update.sh
     dst: /opt/control_my_server_bot/apply_update.sh
     file_info:
-      mode: 0600
+      mode: 0700
 
 scripts:
   postinstall: scripts/postinstall.sh
