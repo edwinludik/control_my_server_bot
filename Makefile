@@ -19,8 +19,12 @@ package-rpm: build-linux
 package-arch: build-linux
 	VERSION=$(VERSION) nfpm pkg --packager archlinux --target .
 
+.PHONY: package-apk
+package-apk: build-linux
+	VERSION=$(VERSION) nfpm pkg --packager apk --target .
+
 .PHONY: packages
-packages: package-deb package-rpm package-arch
+packages: package-deb package-rpm package-arch package-apk
 
 .PHONY: test
 test:
@@ -29,4 +33,4 @@ test:
 .PHONY: clean
 clean:
 	rm -f $(BINARY_NAME)
-	rm -f *.deb *.rpm *.pkg.tar.zst
+	rm -f *.deb *.rpm *.pkg.tar.zst *.apk

@@ -8,8 +8,9 @@ Download the latest version from the [Releases](https://github.com/edwinludik/co
 
 We provide packages for:
 - Debian/Ubuntu (`.deb`)
-- RHEL/CentOS/Fedora (`.rpm`)
+- RHEL/CentOS/Fedora/openSUSE (`.rpm`)
 - Arch Linux (`.pkg.tar.zst`)
+- Alpine Linux (`.apk`)
 
 ### Systemd Integration
 The packages include a systemd service file. After installation, you can:
@@ -101,7 +102,7 @@ The bot is configured via environment variables. You need to provide these in a 
 6. **Configure Polkit/Sudoers**:
    Follow the [Security and Responsiveness Note](#security-and-responsiveness-note) section below to allow the bot to manage services.
 
-### 2. Linux Packages (.deb, .rpm, .pkg.tar.zst)
+### 2. Linux Packages (.deb, .rpm, .pkg.tar.zst, .apk)
 For a cleaner installation, you can build and install a package for your specific distribution.
 
 **Building the packages:**
@@ -113,22 +114,24 @@ For a cleaner installation, you can build and install a package for your specifi
    Or for a specific platform:
    ```bash
    make package-deb   # Debian/Ubuntu
-   make package-rpm   # RedHat/CentOS/Fedora
+   make package-rpm   # RedHat/CentOS/Fedora/openSUSE
    make package-arch  # Arch Linux
+   make package-apk   # Alpine Linux
    ```
 
 **Installing the package:**
 1. Copy the generated package file to your server.
 2. Install it:
    - **Debian/Ubuntu**: `sudo dpkg -i control_my_server_bot_*.deb`
-   - **RedHat/CentOS/Fedora**: `sudo rpm -i control_my_server_bot-*.rpm`
+   - **RedHat/CentOS/Fedora/openSUSE**: `sudo rpm -i control_my_server_bot-*.rpm`
    - **Arch Linux**: `sudo pacman -U control_my_server_bot-*.pkg.tar.zst`
-3. Configure the bot:
-   Edit `/opt/control_my_server_bot/.env` with your credentials.
-4. Restart the service:
-   ```bash
-   sudo systemctl restart control_my_server_bot.service
-   ```
+   - **Alpine Linux**: `sudo apk add --allow-untrusted control_my_server_bot-*.apk`
+### 3. Flatpak and Snap Support
+Currently, we do not provide Flatpak or Snap packages. 
+- **Flatpak** is primarily designed for desktop applications with a GUI, while this bot is a system service.
+- **Snap** support is not currently implemented in `nfpm` (the tool we use for packaging). 
+
+We recommend using the native `.deb`, `.rpm`, `.apk`, or Arch packages for the best integration with your system.
 
 ## Contributing
 
@@ -141,7 +144,7 @@ For a cleaner installation, you can build and install a package for your specifi
 Each Pull Request and push to `main` triggers a GitHub Action that:
 - Builds the Go binary.
 - Runs a security scan (`govulncheck`).
-- Generates Linux packages (.deb, .rpm, .pkg.tar.zst) as artifacts.
+- Generates Linux packages (.deb, .rpm, .pkg.tar.zst, .apk) as artifacts.
 
 ## License
 
