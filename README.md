@@ -69,6 +69,7 @@ The bot is configured via environment variables. You need to provide these in a 
    ```bash
    sudo mkdir -p /opt/control_my_server_bot
    sudo cp control_my_server_bot /opt/control_my_server_bot/
+   sudo cp apply_update.sh /opt/control_my_server_bot/
    sudo cp .env.example /opt/control_my_server_bot/.env
    # Edit /opt/control_my_server_bot/.env with your credentials
    sudo nano /opt/control_my_server_bot/.env
@@ -76,7 +77,7 @@ The bot is configured via environment variables. You need to provide these in a 
 4. **Assign permissions**:
    ```bash
    sudo chown -R control_my_server_bot_user:control_my_server_bot_user /opt/control_my_server_bot
-   sudo chmod 750 /opt/control_my_server_bot
+   sudo chmod 700 /opt/control_my_server_bot
    sudo chmod 600 /opt/control_my_server_bot/.env
    ```
 5. **Install as a systemd service**:
