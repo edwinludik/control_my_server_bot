@@ -1,18 +1,24 @@
 package main
 
 import (
+	"fmt"
 	"log"
 	"os"
 	"os/signal"
 	"strconv"
 	"strings"
 	"syscall"
+	"time"
 
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
 	"github.com/joho/godotenv"
 )
 
 func main() {
+	var shutdownReason string
+	var shutdownRequester string
+	var shutdownTime time.Time
+
 	// Load .env file from the current directory if it exists
 	if err := godotenv.Load(".env"); err != nil {
 		if !os.IsNotExist(err) {
@@ -76,8 +82,24 @@ func main() {
 		select {
 		case sig := <-sigChan:
 			log.Printf("Received signal: %v. Shutting down...", sig)
+			reason := "Process received signal " + sig.String()
+			if shutdownReason != "" {
+				reason = shutdownReason
+				if shutdownRequester != "" {
+					reason += fmt.Sprintf(" (Requested by %s at %s)", shutdownRequester, shutdownTime.Format("15:04:05"))
+				}
+			} else if sig == syscall.SIGTERM {
+				if systemRequester := getSystemShutdownRequester(); systemRequester != "" {
+					reason = "System shutdown initiated: " + systemRequester
+				} else {
+					reason = "System shutdown or service stop (SIGTERM)"
+				}
+			} else if sig == syscall.SIGINT {
+				reason = "Manual interruption (SIGINT)"
+			}
+
 			for _, adminID := range admins {
-				logger.SendMessage(adminID, "🛑 Server shutting down")
+				logger.SendMessage(adminID, "Server shutting down: "+reason)
 			}
 			return
 		case update, ok := <-updates:
@@ -135,7 +157,12 @@ func main() {
 						}
 					}
 
-					handleCallback(bot, update.CallbackQuery, logger, cfg)
+					newReason, newRequester, newTime := handleCallback(bot, update.CallbackQuery, logger, cfg)
+					if newReason != "" {
+						shutdownReason = newReason
+						shutdownRequester = newRequester
+						shutdownTime = newTime
+					}
 				}
 			}()
 		}

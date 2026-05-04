@@ -13,6 +13,8 @@ import (
 	"os/exec"
 	"path/filepath"
 	"strings"
+
+	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
 )
 
 const (
@@ -165,7 +167,15 @@ func handleUpdateCommand(chatID int64, logger *TelegramLogger, cfg *Config) {
 	}
 
 	msgText := fmt.Sprintf("A new version is available: *%s*\nCurrent version: *%s*\n\nDo you want to update?", release.TagName, cfg.Version)
-	logger.SendMarkdown(chatID, msgText)
+	msg := tgbotapi.NewMessage(chatID, msgText)
+	msg.ParseMode = tgbotapi.ModeMarkdown
+	msg.ReplyMarkup = tgbotapi.NewInlineKeyboardMarkup(
+		tgbotapi.NewInlineKeyboardRow(
+			tgbotapi.NewInlineKeyboardButtonData("Yes, update", "confirm_update"),
+			tgbotapi.NewInlineKeyboardButtonData("No, cancel", "close_message"),
+		),
+	)
+	logger.Send(msg)
 }
 
 func performUpdate(chatID int64, logger *TelegramLogger, cfg *Config) {

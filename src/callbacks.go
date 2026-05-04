@@ -10,7 +10,7 @@ import (
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
 )
 
-func handleCallback(bot *tgbotapi.BotAPI, query *tgbotapi.CallbackQuery, logger *TelegramLogger, cfg *Config) {
+func handleCallback(bot *tgbotapi.BotAPI, query *tgbotapi.CallbackQuery, logger *TelegramLogger, cfg *Config) (reason, requester string, t time.Time) {
 	data := query.Data
 	if data == "close_message" {
 		logger.Request(tgbotapi.NewDeleteMessage(query.Message.Chat.ID, query.Message.MessageID))
@@ -58,8 +58,12 @@ func handleCallback(bot *tgbotapi.BotAPI, query *tgbotapi.CallbackQuery, logger 
 	if data == "confirm_restart_server" {
 		logger.Printf("Restarting server confirmed by %s", formatUser(query.From))
 
+		reason = "Restart Server"
+		requester = formatUser(query.From)
+		t = time.Now()
+
 		// Update message to remove buttons and show confirmation
-		now := time.Now().Format("15:04:05")
+		now := t.Format("15:04:05")
 		msgText := fmt.Sprintf("⚠️ *Are you sure you want to restart the server?*\n\n✅ Action confirmed at %s", now)
 		editMsg := tgbotapi.NewEditMessageText(query.Message.Chat.ID, query.Message.MessageID, msgText)
 		editMsg.ParseMode = tgbotapi.ModeMarkdown
@@ -73,11 +77,18 @@ func handleCallback(bot *tgbotapi.BotAPI, query *tgbotapi.CallbackQuery, logger 
 		if err := cmd.Run(); err != nil {
 			logger.Printf("❌ Failed to restart server: %v", err)
 			logger.SendMessage(query.Message.Chat.ID, "❌ Failed to restart server. See logs for details.")
+			// Reset return values if reboot fails
+			return "", "", time.Time{}
 		}
 		return
 	}
 	if data == "confirm_update" {
 		logger.Printf("Bot update confirmed by %s", formatUser(query.From))
+
+		reason = "Bot Update"
+		requester = formatUser(query.From)
+		t = time.Now()
+
 		// Answer callback to remove loading state
 		logger.Request(tgbotapi.NewCallback(query.ID, "Updating bot..."))
 
@@ -208,4 +219,5 @@ func handleCallback(bot *tgbotapi.BotAPI, query *tgbotapi.CallbackQuery, logger 
 			logger.SendMessage(query.Message.Chat.ID, successMsg)
 		}
 	}
+	return
 }

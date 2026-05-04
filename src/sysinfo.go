@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"os/exec"
 	"strings"
 )
@@ -65,4 +66,59 @@ func getDiskSpaceInfo() (string, error) {
 	}
 
 	return strings.Join(result, "\n"), nil
+}
+
+func getSystemShutdownRequester() string {
+	// 1. Check if a system shutdown or reboot is active via systemctl list-jobs
+	// On systemd systems, a shutdown/reboot involves active jobs like reboot.target or poweroff.target.
+	out, err := exec.Command("systemctl", "list-jobs").Output()
+	if err != nil {
+		return ""
+	}
+
+	output := string(out)
+	isShuttingDown := strings.Contains(output, "reboot.target") ||
+		strings.Contains(output, "poweroff.target") ||
+		strings.Contains(output, "halt.target") ||
+		strings.Contains(output, "shutdown.target")
+
+	if !isShuttingDown {
+		return ""
+	}
+
+	// 2. Try to find who requested the shutdown from journalctl
+	// systemd-logind usually logs: "System is rebooting (requested by user root/0)."
+	// We check the last 20 entries of systemd-logind.
+	out, err = exec.Command("journalctl", "-u", "systemd-logind", "-n", "20", "--no-pager").Output()
+	if err == nil {
+		lines := strings.Split(string(out), "\n")
+		// Iterate backwards to find the most recent request
+		for i := len(lines) - 1; i >= 0; i-- {
+			line := lines[i]
+			if strings.Contains(line, "System is") && strings.Contains(line, "requested by user") {
+				start := strings.Index(line, "requested by user")
+				if start != -1 {
+					return strings.TrimSuffix(line[start:], ".")
+				}
+			}
+		}
+	}
+
+	// 3. Fallback: check who is currently logged in to provide context
+	out, err = exec.Command("who").Output()
+	if err == nil && len(out) > 0 {
+		users := strings.Split(strings.TrimSpace(string(out)), "\n")
+		var userList []string
+		for _, u := range users {
+			fields := strings.Fields(u)
+			if len(fields) > 0 {
+				userList = append(userList, fields[0])
+			}
+		}
+		if len(userList) > 0 {
+			return fmt.Sprintf("System shutdown in progress (Logged in users: %s)", strings.Join(userList, ", "))
+		}
+	}
+
+	return "System shutdown in progress"
 }
