@@ -166,9 +166,8 @@ func handleUpdateCommand(chatID int64, logger *TelegramLogger, cfg *Config) {
 		return
 	}
 
-	msgText := fmt.Sprintf("A new version is available: *%s*\nCurrent version: *%s*\n\nDo you want to update?", release.TagName, cfg.Version)
+	msgText := fmt.Sprintf("A new version is available: %s\nCurrent version: %s\n\nDo you want to update?", release.TagName, cfg.Version)
 	msg := tgbotapi.NewMessage(chatID, msgText)
-	msg.ParseMode = tgbotapi.ModeMarkdown
 	msg.ReplyMarkup = tgbotapi.NewInlineKeyboardMarkup(
 		tgbotapi.NewInlineKeyboardRow(
 			tgbotapi.NewInlineKeyboardButtonData("Yes, update", "confirm_update"),

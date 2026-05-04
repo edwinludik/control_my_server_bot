@@ -30,9 +30,7 @@ func (l *TelegramLogger) SendMessage(chatID int64, text string) {
 }
 
 func (l *TelegramLogger) SendMarkdown(chatID int64, text string) {
-	msg := tgbotapi.NewMessage(chatID, text)
-	msg.ParseMode = tgbotapi.ModeMarkdown
-	l.Send(msg)
+	l.SendMessage(chatID, text)
 }
 
 func (l *TelegramLogger) SendHTML(chatID int64, text string) {

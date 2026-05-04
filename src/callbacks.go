@@ -25,7 +25,6 @@ func handleCallback(bot *tgbotapi.BotAPI, query *tgbotapi.CallbackQuery, logger 
 
 		msgText := "Available Services:"
 		editMsg := tgbotapi.NewEditMessageText(query.Message.Chat.ID, query.Message.MessageID, msgText)
-		editMsg.ParseMode = tgbotapi.ModeMarkdown
 
 		var keyboard [][]tgbotapi.InlineKeyboardButton
 		for _, service := range services {
@@ -64,9 +63,8 @@ func handleCallback(bot *tgbotapi.BotAPI, query *tgbotapi.CallbackQuery, logger 
 
 		// Update message to remove buttons and show confirmation
 		now := t.Format("15:04:05")
-		msgText := fmt.Sprintf("⚠️ *Are you sure you want to restart the server?*\n\n✅ Action confirmed at %s", now)
+		msgText := fmt.Sprintf("⚠️ Are you sure you want to restart the server?\n\n✅ Action confirmed at %s", now)
 		editMsg := tgbotapi.NewEditMessageText(query.Message.Chat.ID, query.Message.MessageID, msgText)
-		editMsg.ParseMode = tgbotapi.ModeMarkdown
 		editMsg.ReplyMarkup = nil
 		logger.Send(editMsg)
 

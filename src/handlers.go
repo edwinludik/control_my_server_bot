@@ -79,8 +79,7 @@ func handleCommand(msg *tgbotapi.Message, logger *TelegramLogger, cfg *Config, u
 		}
 		logger.Printf("Server restart requested by %s (Chat %d)", formatUser(msg.From), chatID)
 
-		msg := tgbotapi.NewMessage(chatID, "⚠️ *Are you sure you want to restart the server?*")
-		msg.ParseMode = tgbotapi.ModeMarkdown
+		msg := tgbotapi.NewMessage(chatID, "⚠️ Are you sure you want to restart the server?")
 		msg.ReplyMarkup = tgbotapi.NewInlineKeyboardMarkup(
 			tgbotapi.NewInlineKeyboardRow(
 				tgbotapi.NewInlineKeyboardButtonData("Yes, restart", "confirm_restart_server"),
@@ -112,7 +111,6 @@ func handleCommand(msg *tgbotapi.Message, logger *TelegramLogger, cfg *Config, u
 		} else {
 			msgText := "Available Services:"
 			msg := tgbotapi.NewMessage(chatID, msgText)
-			msg.ParseMode = tgbotapi.ModeMarkdown
 
 			var keyboard [][]tgbotapi.InlineKeyboardButton
 			for _, service := range services {
