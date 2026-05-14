@@ -371,8 +371,10 @@ func handleDockerCallback(bot *tgbotapi.BotAPI, query *tgbotapi.CallbackQuery, l
 	var output string
 	if action == "docker_repull" {
 		output, err = dockerPull(imageToPull)
-	} else {
+	} else if cmd != nil {
 		err = cmd.Run()
+	} else {
+		return
 	}
 
 	if err != nil {
