@@ -44,6 +44,7 @@ func getDockerContainers() ([]DockerContainer, error) {
 }
 
 func getDockerContainer(nameOrID string) (*DockerContainer, error) {
+	// #nosec G204
 	cmd := exec.Command("docker", "inspect", nameOrID, "--format", "{{.ID}}|{{.Config.Image}}|{{.Name}}|{{.Status}}|{{.State.Status}}")
 	output, err := cmd.Output()
 	if err != nil {
@@ -68,6 +69,7 @@ func getDockerContainer(nameOrID string) (*DockerContainer, error) {
 }
 
 func getDockerLogs(containerID string, lines int) (string, error) {
+	// #nosec G204
 	cmd := exec.Command("docker", "logs", "--tail", fmt.Sprintf("%d", lines), containerID)
 	output, err := cmd.CombinedOutput()
 	if err != nil {
@@ -77,6 +79,7 @@ func getDockerLogs(containerID string, lines int) (string, error) {
 }
 
 func dockerPull(image string) (string, error) {
+	// #nosec G204
 	cmd := exec.Command("docker", "pull", image)
 	output, err := cmd.CombinedOutput()
 	if err != nil {

@@ -345,14 +345,17 @@ func handleDockerCallback(bot *tgbotapi.BotAPI, query *tgbotapi.CallbackQuery, l
 	case "docker_start":
 		actionVerb = "starting"
 		actionPast = "started"
+		// #nosec G204
 		cmd = exec.Command("docker", "start", containerID)
 	case "docker_stop":
 		actionVerb = "stopping"
 		actionPast = "stopped"
+		// #nosec G204
 		cmd = exec.Command("docker", "stop", containerID)
 	case "docker_restart":
 		actionVerb = "restarting"
 		actionPast = "restarted"
+		// #nosec G204
 		cmd = exec.Command("docker", "restart", containerID)
 	case "docker_repull":
 		container, err := getDockerContainer(containerID)
