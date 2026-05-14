@@ -238,11 +238,12 @@ func handleCommand(msg *tgbotapi.Message, logger *TelegramLogger, cfg *Config, u
 			var keyboard [][]tgbotapi.InlineKeyboardButton
 			for _, container := range containers {
 				statusEmoji := "❓"
-				if container.State == "running" {
+				switch container.State {
+				case "running":
 					statusEmoji = "🟢"
-				} else if container.State == "exited" {
+				case "exited":
 					statusEmoji = "🔴"
-				} else if container.State == "paused" {
+				case "paused":
 					statusEmoji = "🟡"
 				}
 

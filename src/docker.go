@@ -56,10 +56,7 @@ func getDockerContainer(nameOrID string) (*DockerContainer, error) {
 	}
 
 	// Remove leading slash from name
-	name := parts[2]
-	if strings.HasPrefix(name, "/") {
-		name = name[1:]
-	}
+	name := strings.TrimPrefix(parts[2], "/")
 
 	return &DockerContainer{
 		ID:     parts[0][:12], // Short ID

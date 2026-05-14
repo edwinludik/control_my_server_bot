@@ -68,11 +68,12 @@ func handleCallback(bot *tgbotapi.BotAPI, query *tgbotapi.CallbackQuery, logger 
 		var keyboard [][]tgbotapi.InlineKeyboardButton
 		for _, container := range containers {
 			statusEmoji := "❓"
-			if container.State == "running" {
+			switch container.State {
+			case "running":
 				statusEmoji = "🟢"
-			} else if container.State == "exited" {
+			case "exited":
 				statusEmoji = "🔴"
-			} else if container.State == "paused" {
+			case "paused":
 				statusEmoji = "🟡"
 			}
 
@@ -269,11 +270,12 @@ func handleDockerCallback(bot *tgbotapi.BotAPI, query *tgbotapi.CallbackQuery, l
 		}
 
 		statusEmoji := "❓"
-		if container.State == "running" {
+		switch container.State {
+		case "running":
 			statusEmoji = "🟢"
-		} else if container.State == "exited" {
+		case "exited":
 			statusEmoji = "🔴"
-		} else if container.State == "paused" {
+		case "paused":
 			statusEmoji = "🟡"
 		}
 
