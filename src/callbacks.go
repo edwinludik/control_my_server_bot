@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"html"
 	"log"
 	"os/exec"
 	"strings"
@@ -43,6 +44,40 @@ func handleCallback(bot *tgbotapi.BotAPI, query *tgbotapi.CallbackQuery, logger 
 
 			row := []tgbotapi.InlineKeyboardButton{
 				tgbotapi.NewInlineKeyboardButtonData(fmt.Sprintf("%s %s", statusEmoji, service), fmt.Sprintf("service_view:%s", service)),
+			}
+			keyboard = append(keyboard, row)
+		}
+		keyboard = append(keyboard, []tgbotapi.InlineKeyboardButton{
+			tgbotapi.NewInlineKeyboardButtonData("❌ Close", "close_message"),
+		})
+		editMsg.ReplyMarkup = &tgbotapi.InlineKeyboardMarkup{InlineKeyboard: keyboard}
+
+		logger.Send(editMsg)
+		return
+	}
+	if data == "docker_list" {
+		containers, err := getDockerContainers()
+		if err != nil {
+			logger.Request(tgbotapi.NewCallback(query.ID, "❌ Failed to list Docker containers: "+err.Error()))
+			return
+		}
+
+		msgText := "Docker Containers:"
+		editMsg := tgbotapi.NewEditMessageText(query.Message.Chat.ID, query.Message.MessageID, msgText)
+
+		var keyboard [][]tgbotapi.InlineKeyboardButton
+		for _, container := range containers {
+			statusEmoji := "❓"
+			if container.State == "running" {
+				statusEmoji = "🟢"
+			} else if container.State == "exited" {
+				statusEmoji = "🔴"
+			} else if container.State == "paused" {
+				statusEmoji = "🟡"
+			}
+
+			row := []tgbotapi.InlineKeyboardButton{
+				tgbotapi.NewInlineKeyboardButtonData(fmt.Sprintf("%s %s (%s)", statusEmoji, container.Names, container.Image), fmt.Sprintf("docker_view:%s", container.ID)),
 			}
 			keyboard = append(keyboard, row)
 		}
@@ -100,15 +135,20 @@ func handleCallback(bot *tgbotapi.BotAPI, query *tgbotapi.CallbackQuery, logger 
 	}
 
 	action := parts[0]
-	serviceName := parts[1]
+	target := parts[1]
 
-	if !isServiceAllowed(serviceName, cfg) {
+	if strings.HasPrefix(action, "docker_") {
+		handleDockerCallback(bot, query, logger, action, target)
+		return
+	}
+
+	if !isServiceAllowed(target, cfg) {
 		logger.Request(tgbotapi.NewCallback(query.ID, "❌ Unauthorized or invalid service."))
 		return
 	}
 
 	if action == "service_view" {
-		status := getServiceStatus(serviceName)
+		status := getServiceStatus(target)
 		statusEmoji := "❓"
 		if strings.Contains(status, "active (running)") {
 			statusEmoji = "🟢"
@@ -118,7 +158,7 @@ func handleCallback(bot *tgbotapi.BotAPI, query *tgbotapi.CallbackQuery, logger 
 			statusEmoji = "❌"
 		}
 
-		msgText := fmt.Sprintf("Service: <code>%s</code>\nStatus: %s %s", serviceName, statusEmoji, status)
+		msgText := fmt.Sprintf("Service: <code>%s</code>\nStatus: %s %s", target, statusEmoji, status)
 		editMsg := tgbotapi.NewEditMessageText(query.Message.Chat.ID, query.Message.MessageID, msgText)
 		editMsg.ParseMode = tgbotapi.ModeHTML
 
@@ -126,10 +166,10 @@ func handleCallback(bot *tgbotapi.BotAPI, query *tgbotapi.CallbackQuery, logger 
 		var row []tgbotapi.InlineKeyboardButton
 
 		if strings.Contains(status, "active (running)") {
-			row = append(row, tgbotapi.NewInlineKeyboardButtonData("Stop", fmt.Sprintf("service_stop:%s", serviceName)))
-			row = append(row, tgbotapi.NewInlineKeyboardButtonData("Restart", fmt.Sprintf("service_restart:%s", serviceName)))
+			row = append(row, tgbotapi.NewInlineKeyboardButtonData("Stop", fmt.Sprintf("service_stop:%s", target)))
+			row = append(row, tgbotapi.NewInlineKeyboardButtonData("Restart", fmt.Sprintf("service_restart:%s", target)))
 		} else {
-			row = append(row, tgbotapi.NewInlineKeyboardButtonData("Start", fmt.Sprintf("service_start:%s", serviceName)))
+			row = append(row, tgbotapi.NewInlineKeyboardButtonData("Start", fmt.Sprintf("service_start:%s", target)))
 		}
 		keyboard = append(keyboard, row)
 
@@ -151,34 +191,34 @@ func handleCallback(bot *tgbotapi.BotAPI, query *tgbotapi.CallbackQuery, logger 
 		actionVerb = "starting"
 		actionPast = "started"
 		// #nosec G204
-		cmd = exec.Command("systemctl", "start", serviceName)
+		cmd = exec.Command("systemctl", "start", target)
 	case "service_stop":
 		actionVerb = "stopping"
 		actionPast = "stopped"
 		// #nosec G204
-		cmd = exec.Command("systemctl", "stop", serviceName)
+		cmd = exec.Command("systemctl", "stop", target)
 	case "service_restart":
 		actionVerb = "restarting"
 		actionPast = "restarted"
 		// #nosec G204
-		cmd = exec.Command("systemctl", "restart", serviceName)
+		cmd = exec.Command("systemctl", "restart", target)
 	default:
 		return
 	}
 
 	// Answer callback to remove loading state
-	logger.Request(tgbotapi.NewCallback(query.ID, fmt.Sprintf("%s %s...", strings.ToUpper(actionVerb[:1])+actionVerb[1:], serviceName)))
+	logger.Request(tgbotapi.NewCallback(query.ID, fmt.Sprintf("%s %s...", strings.ToUpper(actionVerb[:1])+actionVerb[1:], target)))
 
 	err := cmd.Run()
 	if err != nil {
-		logger.Printf("❌ Failed to %s service %s by %s: %v", actionVerb, serviceName, formatUser(query.From), err)
-		logger.SendMessage(query.Message.Chat.ID, fmt.Sprintf("❌ Failed to %s service %s.", actionVerb, serviceName))
+		logger.Printf("❌ Failed to %s service %s by %s: %v", actionVerb, target, formatUser(query.From), err)
+		logger.SendMessage(query.Message.Chat.ID, fmt.Sprintf("❌ Failed to %s service %s.", actionVerb, target))
 	} else {
-		successMsg := fmt.Sprintf("Service %s %s successfully.", serviceName, actionPast)
+		successMsg := fmt.Sprintf("Service %s %s successfully.", target, actionPast)
 		logger.Printf("%s (Actioned by %s)", successMsg, formatUser(query.From))
 
 		// Update the original message with new status
-		status := getServiceStatus(serviceName)
+		status := getServiceStatus(target)
 		statusEmoji := "❓"
 		if strings.Contains(status, "active (running)") {
 			statusEmoji = "🟢"
@@ -188,7 +228,7 @@ func handleCallback(bot *tgbotapi.BotAPI, query *tgbotapi.CallbackQuery, logger 
 			statusEmoji = "❌"
 		}
 
-		newText := fmt.Sprintf("Service: <code>%s</code>\nStatus: %s %s\n\n%s", serviceName, statusEmoji, status, successMsg)
+		newText := fmt.Sprintf("Service: <code>%s</code>\nStatus: %s %s\n\n%s", target, statusEmoji, status, successMsg)
 		editMsg := tgbotapi.NewEditMessageText(query.Message.Chat.ID, query.Message.MessageID, newText)
 		editMsg.ParseMode = tgbotapi.ModeHTML
 
@@ -196,10 +236,10 @@ func handleCallback(bot *tgbotapi.BotAPI, query *tgbotapi.CallbackQuery, logger 
 		var row []tgbotapi.InlineKeyboardButton
 
 		if strings.Contains(status, "active (running)") {
-			row = append(row, tgbotapi.NewInlineKeyboardButtonData("Stop", fmt.Sprintf("service_stop:%s", serviceName)))
-			row = append(row, tgbotapi.NewInlineKeyboardButtonData("Restart", fmt.Sprintf("service_restart:%s", serviceName)))
+			row = append(row, tgbotapi.NewInlineKeyboardButtonData("Stop", fmt.Sprintf("service_stop:%s", target)))
+			row = append(row, tgbotapi.NewInlineKeyboardButtonData("Restart", fmt.Sprintf("service_restart:%s", target)))
 		} else {
-			row = append(row, tgbotapi.NewInlineKeyboardButtonData("Start", fmt.Sprintf("service_start:%s", serviceName)))
+			row = append(row, tgbotapi.NewInlineKeyboardButtonData("Start", fmt.Sprintf("service_start:%s", target)))
 		}
 
 		keyboard = append(keyboard, row)
@@ -218,4 +258,147 @@ func handleCallback(bot *tgbotapi.BotAPI, query *tgbotapi.CallbackQuery, logger 
 		}
 	}
 	return
+}
+
+func handleDockerCallback(bot *tgbotapi.BotAPI, query *tgbotapi.CallbackQuery, logger *TelegramLogger, action, containerID string) {
+	if action == "docker_view" {
+		container, err := getDockerContainer(containerID)
+		if err != nil {
+			logger.Request(tgbotapi.NewCallback(query.ID, "❌ Failed to get container info: "+err.Error()))
+			return
+		}
+
+		statusEmoji := "❓"
+		if container.State == "running" {
+			statusEmoji = "🟢"
+		} else if container.State == "exited" {
+			statusEmoji = "🔴"
+		} else if container.State == "paused" {
+			statusEmoji = "🟡"
+		}
+
+		msgText := fmt.Sprintf("Container: <code>%s</code>\nImage: <code>%s</code>\nStatus: %s %s",
+			container.Names, container.Image, statusEmoji, container.Status)
+		editMsg := tgbotapi.NewEditMessageText(query.Message.Chat.ID, query.Message.MessageID, msgText)
+		editMsg.ParseMode = tgbotapi.ModeHTML
+
+		var keyboard [][]tgbotapi.InlineKeyboardButton
+		var row1 []tgbotapi.InlineKeyboardButton
+		var row2 []tgbotapi.InlineKeyboardButton
+
+		if container.State == "running" {
+			row1 = append(row1, tgbotapi.NewInlineKeyboardButtonData("Stop", fmt.Sprintf("docker_stop:%s", containerID)))
+			row1 = append(row1, tgbotapi.NewInlineKeyboardButtonData("Restart", fmt.Sprintf("docker_restart:%s", containerID)))
+		} else {
+			row1 = append(row1, tgbotapi.NewInlineKeyboardButtonData("Start", fmt.Sprintf("docker_start:%s", containerID)))
+		}
+		keyboard = append(keyboard, row1)
+
+		row2 = append(row2, tgbotapi.NewInlineKeyboardButtonData("Logs", fmt.Sprintf("docker_logs:%s", containerID)))
+		row2 = append(row2, tgbotapi.NewInlineKeyboardButtonData("Repull", fmt.Sprintf("docker_repull:%s", containerID)))
+		keyboard = append(keyboard, row2)
+
+		keyboard = append(keyboard, []tgbotapi.InlineKeyboardButton{
+			tgbotapi.NewInlineKeyboardButtonData("Back to list", "docker_list"),
+		})
+
+		editMsg.ReplyMarkup = &tgbotapi.InlineKeyboardMarkup{InlineKeyboard: keyboard}
+		logger.Send(editMsg)
+		return
+	}
+
+	if action == "docker_logs" {
+		logs, err := getDockerLogs(containerID, 100)
+		if err != nil {
+			logger.Request(tgbotapi.NewCallback(query.ID, "❌ Failed to get logs: "+err.Error()))
+			return
+		}
+		if logs == "" {
+			logs = "(Empty logs)"
+		}
+
+		// Telegram has a limit on message length (4096 characters)
+		if len(logs) > 4000 {
+			logs = logs[len(logs)-4000:]
+		}
+
+		msgText := fmt.Sprintf("Last 100 lines of logs for <code>%s</code>:\n<pre>%s</pre>", containerID, html.EscapeString(logs))
+		msg := tgbotapi.NewMessage(query.Message.Chat.ID, msgText)
+		msg.ParseMode = tgbotapi.ModeHTML
+		msg.ReplyMarkup = tgbotapi.NewInlineKeyboardMarkup(
+			tgbotapi.NewInlineKeyboardRow(
+				tgbotapi.NewInlineKeyboardButtonData("Close", "close_message"),
+			),
+		)
+		logger.Send(msg)
+		logger.Request(tgbotapi.NewCallback(query.ID, ""))
+		return
+	}
+
+	var cmd *exec.Cmd
+	var actionVerb, actionPast string
+	var imageToPull string
+
+	switch action {
+	case "docker_start":
+		actionVerb = "starting"
+		actionPast = "started"
+		cmd = exec.Command("docker", "start", containerID)
+	case "docker_stop":
+		actionVerb = "stopping"
+		actionPast = "stopped"
+		cmd = exec.Command("docker", "stop", containerID)
+	case "docker_restart":
+		actionVerb = "restarting"
+		actionPast = "restarted"
+		cmd = exec.Command("docker", "restart", containerID)
+	case "docker_repull":
+		container, err := getDockerContainer(containerID)
+		if err != nil {
+			logger.Request(tgbotapi.NewCallback(query.ID, "❌ Failed to get container info for repull: "+err.Error()))
+			return
+		}
+		imageToPull = container.Image
+		actionVerb = "pulling"
+		actionPast = "pulled"
+	default:
+		return
+	}
+
+	logger.Request(tgbotapi.NewCallback(query.ID, fmt.Sprintf("%s %s...", strings.ToUpper(actionVerb[:1])+actionVerb[1:], containerID)))
+
+	var err error
+	var output string
+	if action == "docker_repull" {
+		output, err = dockerPull(imageToPull)
+	} else {
+		err = cmd.Run()
+	}
+
+	if err != nil {
+		logger.Printf("❌ Failed to %s container %s by %s: %v", actionVerb, containerID, formatUser(query.From), err)
+		logger.SendMessage(query.Message.Chat.ID, fmt.Sprintf("❌ Failed to %s container %s.", actionVerb, containerID))
+	} else {
+		successMsg := fmt.Sprintf("Container %s %s successfully.", containerID, actionPast)
+		if action == "docker_repull" {
+			successMsg = fmt.Sprintf("Image <code>%s</code> pulled successfully.", imageToPull)
+			// Show first few lines of output
+			if len(output) > 200 {
+				output = output[:200] + "..."
+			}
+			successMsg += fmt.Sprintf("\n<pre>%s</pre>", html.EscapeString(output))
+		}
+		logger.Printf("%s (Actioned by %s)", successMsg, formatUser(query.From))
+
+		// For repull, we don't necessarily update the view as it might be a lot of text,
+		// but for start/stop/restart we definitely want to update the view.
+		if action != "docker_repull" {
+			// Reuse docker_view to update the message
+			handleDockerCallback(bot, query, logger, "docker_view", containerID)
+		} else {
+			msg := tgbotapi.NewMessage(query.Message.Chat.ID, successMsg)
+			msg.ParseMode = tgbotapi.ModeHTML
+			logger.Send(msg)
+		}
+	}
 }

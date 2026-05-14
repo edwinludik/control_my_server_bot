@@ -26,6 +26,8 @@ systemctl enable --now control_my_server_bot
 - `/get_ram_usage`: Show current RAM usage.
 - `/get_disk_usage`: Show free disk space on all drives.
 - `/get_services`: List available services (all running or from a whitelist).
+- `/docker`: List and control individual Docker containers.
+  - Features: List, start, stop, restart, repull images, and view last 100 lines of logs.
 - `/restart_server`: Reboot the server.
 - **Multi-user Support**: Add and manage additional users.
   - `/add_user <id>`: Grant full permissions to a user (Owner only).
@@ -159,11 +161,16 @@ The bot runs as a dedicated non-root user (`control_my_server_bot_user`) for enh
 - **File Permissions**: The bot automatically attempts to set restricted permissions (`0600`) on the `.env` and SQLite database files, and the installation directory is restricted to the `control_my_server_bot_user` user.
 - **Error Sanitization**: System-level error details are logged to the private log channel but not sent directly to the user who triggered the command.
 
-### Manual Sudo/Polkit Configuration (if not using packages)
+### Manual Sudo/Polkit/Docker Configuration (if not using packages)
 If you are installing manually and don't want to run the bot as `root`, you should:
 1. Create a dedicated user (e.g., `control_my_server_bot_user`).
 2. Give the user ownership of the bot's directory.
-3. Configure Polkit by adding a rule in `/etc/polkit-1/rules.d/10-control_my_server_bot_user.rules`:
+3. **Docker Permissions**: Add the user to the `docker` group to allow it to control containers:
+   ```bash
+   sudo usermod -aG docker control_my_server_bot_user
+   ```
+   *Note: You may need to restart the service for this change to take effect.*
+4. Configure Polkit by adding a rule in `/etc/polkit-1/rules.d/10-control_my_server_bot_user.rules`:
    ```javascript
    polkit.addRule(function(action, subject) {
        if (subject.user == "control_my_server_bot_user") {

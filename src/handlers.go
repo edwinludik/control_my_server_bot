@@ -55,6 +55,7 @@ func handleCommand(msg *tgbotapi.Message, logger *TelegramLogger, cfg *Config, u
 		"• /get\\_ram\\_usage — Show current RAM usage\n" +
 		"• /get\\_disk\\_usage — Show free disk space on all drives\n" +
 		"• /get\\_services — List available services\n" +
+		"• /docker — List and control Docker containers\n" +
 		"• /get\\_update — Check for bot updates\n" +
 		"• /restart\\_server — Reboot the server"
 
@@ -216,6 +217,47 @@ func handleCommand(msg *tgbotapi.Message, logger *TelegramLogger, cfg *Config, u
 			return
 		}
 		logger.SendMarkdown(chatID, "Free Disk Space:\n"+diskInfo)
+
+	case "docker":
+		if !isAuthorized {
+			logger.SendMessage(chatID, "🚫 Permission denied.")
+			return
+		}
+		containers, err := getDockerContainers()
+		if err != nil {
+			logger.SendMessage(chatID, "❌ Failed to list Docker containers: "+err.Error())
+			return
+		}
+
+		if len(containers) == 0 {
+			logger.SendMessage(chatID, "No Docker containers found.")
+		} else {
+			msgText := "Docker Containers:"
+			msg := tgbotapi.NewMessage(chatID, msgText)
+
+			var keyboard [][]tgbotapi.InlineKeyboardButton
+			for _, container := range containers {
+				statusEmoji := "❓"
+				if container.State == "running" {
+					statusEmoji = "🟢"
+				} else if container.State == "exited" {
+					statusEmoji = "🔴"
+				} else if container.State == "paused" {
+					statusEmoji = "🟡"
+				}
+
+				row := []tgbotapi.InlineKeyboardButton{
+					tgbotapi.NewInlineKeyboardButtonData(fmt.Sprintf("%s %s (%s)", statusEmoji, container.Names, container.Image), fmt.Sprintf("docker_view:%s", container.ID)),
+				}
+				keyboard = append(keyboard, row)
+			}
+
+			keyboard = append(keyboard, []tgbotapi.InlineKeyboardButton{
+				tgbotapi.NewInlineKeyboardButtonData("❌ Close", "close_message"),
+			})
+			msg.ReplyMarkup = tgbotapi.NewInlineKeyboardMarkup(keyboard...)
+			logger.Send(msg)
+		}
 
 	case "add_user":
 		if !isOwner {
