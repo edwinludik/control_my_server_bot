@@ -1,6 +1,17 @@
 # Control My Server Telegram Bot
 
+[![GitHub release (latest by date)](https://img.shields.io/github/v/release/edwinludik/control_my_server_bot?style=flat-square)](https://github.com/edwinludik/control_my_server_bot/releases)
+[![GitHub Workflow Status](https://img.shields.io/github/actions/workflow/status/edwinludik/control_my_server_bot/ci.yml?branch=main&style=flat-square)](https://github.com/edwinludik/control_my_server_bot/actions)
+[![Go Version](https://img.shields.io/badge/go-1.26+-00ADD8?style=flat-square&logo=go)](https://go.dev)
+[![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg?style=flat-square)](https://opensource.org/licenses/MIT)
+
 A Telegram bot to control your Linux server remotely.
+
+## Documentation
+
+- [Changelog](CHANGELOG.md) - View what's new in each release
+- [Security Policy](SECURITY.md) - Security best practices and vulnerability reporting
+- [Code of Conduct](CODE_OF_CONDUCT.md) - Community guidelines
 
 ## Installation
 
@@ -134,6 +145,40 @@ Currently, we do not provide Flatpak or Snap packages.
 - **Snap** support is not currently implemented in `nfpm` (the tool we use for packaging). 
 
 We recommend using the native `.deb`, `.rpm`, `.apk`, or Arch packages for the best integration with your system.
+
+### 4. Docker (Development/Testing)
+
+**Note**: Docker deployment has limitations - system-level commands (service restart, server reboot) cannot work inside a container without host-level privileges. For production use, we recommend installing directly on the host machine.
+
+For development or testing purposes:
+
+```bash
+# Build and run with Docker Compose
+docker-compose build
+docker-compose up -d
+```
+
+Or manually:
+```bash
+# Build the image
+docker build -t control-my-server-bot .
+
+# Run the container
+docker run -d \
+  --name control-my-server-bot \
+  -v $(pwd)/docker.env:/opt/control_my_server_bot/.env:ro \
+  -v $(pwd)/data:/opt/control_my_server_bot/data \
+  --user control_my_server_bot_user \
+  control-my-server-bot
+```
+
+Create a `docker.env` file with your credentials:
+```
+TELEGRAM_BOT_TOKEN=your_bot_token_here
+TELEGRAM_OWNER_ID=your_user_id_here
+TELEGRAM_LOG_CHANNEL_ID=@your_log_channel
+CONTROLLED_SERVICES=nginx,apache2
+```
 
 ## Contributing
 

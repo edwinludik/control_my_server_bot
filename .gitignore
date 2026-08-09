@@ -1,4 +1,39 @@
-/.env
+# Environment files
+.env
+.env.local
+.env.*.local
+
+# Database files
 /.user_ids*
+/.user_ids.db*
+
+# Build outputs
 /bot
 /control_my_server_bot
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# Go
+go.env
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+
+# Package files
+*.deb
+*.rpm
+*.pkg.tar.zst
+*.apk
+checksums.txt
+
+# Temporary files
+*.tmp
+*.bak

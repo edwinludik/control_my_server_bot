@@ -1,0 +1,48 @@
+version: '3.8'
+
+services:
+  control-my-server-bot:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: control_my_server_bot
+    user: control_my_server_bot_user
+    working_dir: /opt/control_my_server_bot
+    volumes:
+      # Mount .env file (create this on host with your credentials)
+      - ./docker.env:/opt/control_my_server_bot/.env:ro
+      # Mount user database (persistent storage)
+      - ./data:/opt/control_my_server_bot/data:rw
+    environment:
+      - TZ=${TZ:-UTC}
+    restart: unless-stopped
+    # Note: Docker-in-Docker would be needed for Docker control features
+    # For production, consider using host mode or proper Docker socket mounting
+    # For service restart and reboot commands, you'll need host-level access
+    # This compose file is for the bot only; system-level commands require host access
+    healthcheck:
+      test: ["CMD", "test", "-f", "/opt/control_my_server_bot/control_my_server_bot"]
+      interval: 30s
+      timeout: 3s
+      retries: 3
+      start_period: 5s
+
+# Important Notes for Docker Deployment:
+# 
+# 1. System-level commands (service restart, server reboot) CANNOT work inside a container
+#    without host privileges. For full functionality, run the bot directly on the host.
+# 
+# 2. For Docker container control (docker ps, docker start/stop), you need to:
+#    - Mount the Docker socket: -v /var/run/docker.sock:/var/run/docker.sock
+#    - Add the container to the docker group
+# 
+# 3. Create a docker.env file in the same directory with your credentials:
+#    TELEGRAM_BOT_TOKEN=your_bot_token_here
+#    TELEGRAM_OWNER_ID=your_user_id_here
+#    TELEGRAM_LOG_CHANNEL_ID=@your_log_channel
+#    CONTROLLED_SERVICES=nginx,apache2
+# 
+# 4. The data volume stores the SQLite user database persistently.
+# 
+# 5. For production use, consider running the bot directly on the host machine
+#    with the provided systemd service for full functionality.

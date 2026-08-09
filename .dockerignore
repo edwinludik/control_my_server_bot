@@ -1,0 +1,74 @@
+# Git
+.git
+.gitignore
+
+# GitHub
+.github
+
+# Documentation
+README.md
+LICENSE
+CODE_OF_CONDUCT.md
+SECURITY.md
+CHANGELOG.md
+
+# IDE
+.idea
+.vscode
+
+# Build outputs (will be recreated)
+control_my_server_bot
+bot
+
+# Environment files
+.env
+.env.*
+!.env.example
+
+# Database files
+.user_ids*
+.user_ids.db*
+
+# Logs
+*.log
+
+# Package files
+*.deb
+*.rpm
+*.pkg.tar.zst
+*.apk
+checksums.txt
+
+# Docker files
+Dockerfile
+docker-compose.yml
+.dockerignore
+
+# Makefile and scripts
+Makefile
+*.sh
+
+# Go
+*.mod
+*.sum
+
+# Version file
+VERSION
+
+# Systemd
+*.service
+
+# nfpm
+nfpm.yaml
+
+# CI
+*.yml
+*.yaml
+
+# Temporary files
+*.tmp
+*.bak
+
+# OS files
+.DS_Store
+Thumbs.db
