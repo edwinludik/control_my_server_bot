@@ -17,6 +17,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Added Dockerfile for containerized deployment
 
 ### Changed
+- CI now tags and publishes a release automatically on every push to `main`, bumping the minor version (`scripts/next_version.sh`)
 - Update checks (`/get_update`) now use releases from `edwinludik-ai/control_my_server_bot`
 - Updated .gitignore to exclude IDE configurations and database files
 - Enhanced README with improved documentation
@@ -67,10 +68,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 When contributing to this project, please update the changelog as part of your pull request. Add your changes under the `[Unreleased]` section following the existing format.
 
-When releasing a new version:
-1. Create a new section for the version at the top
-2. Update the date
-3. Move all changes from `[Unreleased]` to the new version section
-4. Create a new `[Unreleased]` section
-5. Update the VERSION file
-6. Create a Git tag matching the version (e.g., `v1.2.1`)
+Releases are cut automatically by CI on every push to `main`:
+- If the `VERSION` file holds a version that has no tag yet, that version is released as-is. Use this to choose a version by hand (e.g., a major bump).
+- Otherwise the minor version is incremented and the patch reset to 0 (e.g., `1.2.2` → `1.3.0`).
+- CI commits the new `VERSION` back to `main`, creates the matching `v*` tag, builds the packages, and publishes the GitHub release.
+
+Before merging to `main`, move the changes from `[Unreleased]` into a new section for the version about to be released, using the date of the release.
