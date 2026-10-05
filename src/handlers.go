@@ -48,22 +48,22 @@ func handleCommand(msg *tgbotapi.Message, logger *TelegramLogger, cfg *Config, u
 
 	logger.Printf("Command received: /%s from %s (Chat %d)", command, formatUser(msg.From), chatID)
 
-	helpText := "Available Commands:\n" +
+	helpText := "<b>Available Commands:</b>\n" +
 		"• /ping — Return \"Pong!\"\n" +
 		"• /status — Check server status, RAM, CPU, and disk space\n" +
-		"• /get\\_cpu\\_usage — Show current CPU usage\n" +
-		"• /get\\_ram\\_usage — Show current RAM usage\n" +
-		"• /get\\_disk\\_usage — Show free disk space on all drives\n" +
-		"• /get\\_services — List available services\n" +
+		"• /get_cpu_usage — Show current CPU usage\n" +
+		"• /get_ram_usage — Show current RAM usage\n" +
+		"• /get_disk_usage — Show free disk space on all drives\n" +
+		"• /get_services — List available services\n" +
 		"• /docker — List and control Docker containers\n" +
-		"• /get\\_update — Check for bot updates\n" +
-		"• /restart\\_server — Reboot the server"
+		"• /get_update — Check for bot updates\n" +
+		"• /restart_server — Reboot the server"
 
 	if isOwner {
-		helpText += "\n\n *Owner Commands:*\n" +
-			"• /add\\_user <id> — Add an authorized user\n" +
-			"• /delete\\_user <id> — Remove a user\n" +
-			"• /get\\_users — List all authorized users"
+		helpText += "\n\n<b>Owner Commands:</b>\n" +
+			"• /add_user &lt;id&gt; — Add an authorized user\n" +
+			"• /delete_user &lt;id&gt; — Remove a user\n" +
+			"• /get_users — List all authorized users"
 	}
 
 	switch command {
@@ -71,7 +71,7 @@ func handleCommand(msg *tgbotapi.Message, logger *TelegramLogger, cfg *Config, u
 		logger.SendMessage(chatID, "Pong!")
 
 	case "start", "help":
-		logger.SendMarkdown(chatID, helpText)
+		logger.SendHTML(chatID, helpText)
 
 	case "restart_server":
 		if !isAuthorized {

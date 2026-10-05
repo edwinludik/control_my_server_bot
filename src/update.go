@@ -18,7 +18,7 @@ import (
 )
 
 const (
-	latestReleaseURL = "https://api.github.com/repos/edwinludik/control_my_server_bot/releases/latest"
+	latestReleaseURL = "https://api.github.com/repos/edwinludik-ai/control_my_server_bot/releases/latest"
 	newBinaryName    = "control_my_server_bot.new"
 	checksumFileName = "checksums.txt"
 )
