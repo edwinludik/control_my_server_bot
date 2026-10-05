@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.2.2] - 2026-10-05
+
 ### Added
 - Added CODE_OF_CONDUCT.md for community guidelines
 - Added SECURITY.md for vulnerability reporting and best practices
@@ -15,8 +17,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Added Dockerfile for containerized deployment
 
 ### Changed
+- Update checks (`/get_update`) now use releases from `edwinludik-ai/control_my_server_bot`
 - Updated .gitignore to exclude IDE configurations and database files
 - Enhanced README with improved documentation
+
+### Fixed
+- `/start` and `/help` output showed literal backslashes and asterisks; the help text is now sent as HTML
 
 ## [1.2.1] - 2026-08-09
 
